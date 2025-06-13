@@ -1,0 +1,5 @@
+- use uv run for python operations
+- keep it tight, i know what i'm doing
+- no hacks
+- no backwards compatibility
+- keep code flat, don't swallow exceptions, don't try/except and then log, let exceptions flow.

@@ -1,0 +1,52 @@
+[package]
+name = "zopfli-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[features]
+default = ["cc", "glob"]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+libc = "0.2"
+
+[build-dependencies]
+cc = { version = "1.0", optional = true }
+glob = { version = "0.3", optional = true }
+
+[dependencies.zopfli]
+path = ".."
+
+[[bin]]
+name = "fuzz_dummy"
+path = "fuzz_targets/fuzz_dummy.rs"
+test = false
+doc = false
+[[bin]]
+name = "fuzz_ZopfliVerifyLenDist"
+path = "fuzz_targets/fuzz_ZopfliVerifyLenDist.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliGetDistExtraBits"
+path = "fuzz_targets/fuzz_ZopfliGetDistExtraBits.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliGetDistExtraBitsValue"
+path = "fuzz_targets/fuzz_ZopfliGetDistExtraBitsValue.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliGetLengthExtraBits"
+path = "fuzz_targets/fuzz_ZopfliGetLengthExtraBits.rs"
+test = false
+doc = false
