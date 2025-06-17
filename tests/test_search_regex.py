@@ -3,8 +3,9 @@
 import tempfile
 from pathlib import Path
 
-from portkit.implfuzz import BuilderContext, SearchRequest, SearchSpec, search_files
+from portkit.implfuzz import BuilderContext
 from portkit.sourcemap import SourceMap
+from portkit.tinyagent.agent import SearchRequest, SearchSpec, search_files
 
 
 def test_search_files_regex():
@@ -62,7 +63,7 @@ int SomeOtherFunction() {
 
         # Should find both functions in the results
         found_text = ""
-        for pattern, matches in result.results.items():
+        for _, matches in result.results.items():
             for match in matches:
                 found_text += match.context
 
@@ -72,7 +73,7 @@ int SomeOtherFunction() {
 
         # Check that matches were found in both file types
         found_files = set()
-        for pattern, matches in result.results.items():
+        for _, matches in result.results.items():
             for match in matches:
                 found_files.add(match.path)
 
@@ -112,7 +113,7 @@ pub fn simple_function() -> i32 {
 
         # Should find the function
         found_text = ""
-        for pattern, matches in result.results.items():
+        for _, matches in result.results.items():
             for match in matches:
                 found_text += match.context + " " + match.path
 
@@ -153,7 +154,7 @@ pub fn other_function() -> i32 { 0 }
 
         # Should find func_one, func_two, func_three but not other_function
         found_text = ""
-        for pattern, matches in result.results.items():
+        for _, matches in result.results.items():
             for match in matches:
                 found_text += match.context
 

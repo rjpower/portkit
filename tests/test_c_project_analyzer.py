@@ -169,7 +169,7 @@ def test_c_source_symbols_included(zopfli_src, analyzer):
         "ZopfliLZ77Store" in calc_block_size.dependencies
     ), f"Should depend on ZopfliLZ77Store, but deps are: {calc_block_size.dependencies}"
 
-    print(f"C source symbol test passed:")
+    print("C source symbol test passed:")
     file_name = (
         definition_file
         if definition_file

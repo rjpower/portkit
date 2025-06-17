@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from portkit.patch import DiffFencedPatcher, apply_diff_fenced_patch
+from portkit.tinyagent.patch import DiffFencedPatcher, apply_diff_fenced_patch
 
 
 class TestDiffFencedPatcher:

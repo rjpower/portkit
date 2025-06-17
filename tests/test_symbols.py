@@ -6,9 +6,8 @@ from pathlib import Path
 import pytest
 
 from portkit.implfuzz import BuilderContext
-from portkit.console import Console
-from portkit.tinyagent import SymbolStatusRequest, symbol_status
 from portkit.sourcemap import SourceMap
+from portkit.tinyagent.agent import SymbolStatusRequest, symbol_status
 
 
 @pytest.fixture
@@ -32,7 +31,6 @@ def temp_project():
 
 def create_ctx(temp_project):
     return BuilderContext(
-        console=Console(),
         project_root=temp_project,
         source_map=SourceMap(temp_project),
     )
@@ -91,24 +89,24 @@ typedef struct ZopfliLongestMatchCache ZopfliLongestMatchCache;
 
 void init_cache(struct ZopfliLongestMatchCache* cache);
 """)
-    
+
     # Create SourceMap (parsing happens at init)
     source_map = SourceMap(temp_project)
     symbols = source_map.parse_project()
-    
+
     # Debug: Print all found symbols
     print("All symbols found:")
     for s in symbols:
         print(f"  {s.name} ({s.kind}, {s.language})")
-    
+
     # Find any C symbols - we should at least find the function
     c_symbols = [s for s in symbols if s.language == "c"]
     assert len(c_symbols) >= 1, f"Expected to find C symbols, found: {[s.name for s in symbols]}"
-    
+
     # Check if we found the function declaration
     function_symbols = [s for s in c_symbols if s.name == "init_cache"]
-    assert len(function_symbols) >= 1, f"Expected to find init_cache function"
-    
+    assert len(function_symbols) >= 1, "Expected to find init_cache function"
+
     # The struct might or might not be parsed depending on tree-sitter patterns
     # This is acceptable as long as functions are parsed correctly
 
@@ -122,11 +120,11 @@ int TestFunction(int x, int y) {
     return x + y;
 }
 """)
-    
+
     # Create SourceMap (parsing happens at init)
     source_map = SourceMap(temp_project)
-    symbols = source_map.parse_project()
-    
+    source_map.parse_project()
+
     # Test get_symbol_source_code
     source_code = source_map.get_symbol_source_code("TestFunction")
     assert "TestFunction" in source_code
@@ -142,7 +140,7 @@ int TestFunction(int x, int y) {
     return x + y;
 }
 """)
-    
+
     # Create Rust FFI file
     ffi_file = temp_project / "rust" / "src" / "ffi.rs"
     ffi_file.write_text("""
@@ -150,11 +148,11 @@ extern "C" {
     pub fn TestFunction(x: i32, y: i32) -> i32;
 }
 """)
-    
+
     # Create SourceMap (parsing happens at init)
     source_map = SourceMap(temp_project)
-    symbols = source_map.parse_project()
-    
+    source_map.parse_project()
+
     # Test lookup_symbol
     locations = source_map.lookup_symbol("TestFunction")
     assert locations.c_source_path == "src/test.c"
@@ -170,11 +168,11 @@ pub fn test_function(x: i32, y: i32) -> i32 {
     x + y
 }
 """)
-    
+
     # Create SourceMap (parsing happens at init)
     source_map = SourceMap(temp_project)
-    symbols = source_map.parse_project()
-    
+    source_map.parse_project()
+
     # Test find_rust_symbol_definition
     result = source_map.find_rust_symbol_definition(rust_file, "test_function")
     assert "test_function" in result

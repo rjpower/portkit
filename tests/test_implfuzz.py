@@ -13,11 +13,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from portkit.console import Console
-from portkit.implfuzz import TOOL_HANDLER, BuilderContext
+from portkit.implfuzz import BuilderContext, generate_unified_prompt
 from portkit.sourcemap import SourceMap, Symbol
-from portkit.tinyagent import (
+from portkit.tinyagent.agent import (
+    TOOL_HANDLER,
     AppendFileRequest,
+    CompileError,
     EditCodeRequest,
     FuzzTestError,
     ReadFileRequest,
@@ -42,7 +43,6 @@ def create_test_context(project_root: Path) -> BuilderContext:
     return BuilderContext(
         project_root=project_root,
         source_map=SourceMap(project_root),
-        console=Console(),
     )
 
 
@@ -71,7 +71,7 @@ def test_read_existing_c_source_file():
         ctx = create_test_context(Path(temp_path).parent)
 
         request = ReadFileRequest(paths=[Path(temp_path).name])
-        result = read_files(request, ctx=ctx, console=Console())
+        result = read_files(request, ctx=ctx)
 
         file_content = result.files[Path(temp_path).name]
         assert "/* Test header */" in file_content
@@ -86,7 +86,7 @@ def test_read_nonexistent_c_source_file():
     request = ReadFileRequest(paths=["nonexistent.h"])
 
     with pytest.raises(ValueError):
-        read_files(request, ctx=ctx, console=Console())
+        read_files(request, ctx=ctx)
 
 
 def test_append_rust_code_creates_file():
@@ -108,7 +108,7 @@ def test_append_rust_code_creates_file():
             request = AppendFileRequest(
                 path="rust/src/test.rs", content="pub fn test() { unimplemented!(); }"
             )
-            result = append_to_file(request, ctx=ctx, console=Console())
+            result = append_to_file(request, ctx=ctx)
 
             assert result.success is True
 
@@ -140,7 +140,7 @@ def test_append_rust_code_appends_to_existing():
         with patch("portkit.implfuzz.compile_rust_project"):
 
             request = AppendFileRequest(path="rust/src/test.rs", content="new content")
-            result = append_to_file(request, ctx=ctx, console=Console())
+            result = append_to_file(request, ctx=ctx)
 
             assert result.success is True
 
@@ -171,7 +171,7 @@ def test_write_fuzz_test_creates_file_and_cargo_entry():
                 path="rust/fuzz/fuzz_targets/test_target.rs",
                 content="#![no_main]\nuse libfuzzer_sys::fuzz_target;\nfuzz_target!(|data: &[u8]| {});",
             )
-            result = replace_file(request, ctx=ctx, console=Console())
+            result = replace_file(request, ctx=ctx)
 
             assert result.success is True
 
@@ -220,7 +220,7 @@ path = "fuzz_targets/test_target.rs"
         assert cargo_content.count('name = "test_target"') == 1
 
 
-@patch("portkit.implfuzz.subprocess.run")
+@patch("portkit.tinyagent.agent.subprocess.run")
 def test_run_fuzz_test_success(mock_subprocess):
     """Test successful fuzz test run."""
     mock_subprocess.return_value = MagicMock(returncode=0, stderr="")
@@ -243,7 +243,7 @@ def test_run_fuzz_test_success(mock_subprocess):
         assert "-max_total_time=30" in args
 
 
-@patch("portkit.implfuzz.subprocess.run")
+@patch("portkit.tinyagent.agent.subprocess.run")
 def test_run_fuzz_test_failure(mock_subprocess):
     """Test failed fuzz test run."""
     mock_subprocess.return_value = MagicMock(
@@ -259,20 +259,22 @@ def test_run_fuzz_test_failure(mock_subprocess):
             run_fuzz_test(request, ctx=ctx)
 
 
-@patch("portkit.implfuzz.subprocess.run")
+@patch("portkit.tinyagent.agent.subprocess.run")
 def test_compile_rust_project_success(mock_subprocess):
     """Test successful compilation."""
     mock_subprocess.return_value = MagicMock(returncode=0, stderr="")
+
+    ctx = create_test_context(Path("/fake/path"))
 
     compile_rust_project(Path("/fake/path"), ctx=ctx)
 
     mock_subprocess.assert_called()
 
 
-@patch("portkit.implfuzz.subprocess.run")
+@patch("portkit.tinyagent.agent.subprocess.run")
 def test_compile_rust_project_failure(mock_subprocess):
     """Test compilation failure."""
-    from portkit.implfuzz import CompileError
+    ctx = create_test_context(Path("/fake/path"))
 
     mock_subprocess.return_value = MagicMock(
         returncode=1,
@@ -496,7 +498,7 @@ def test_search_files_context_lines():
         # Should find the match with more context
         assert len(result.results) > 0
         found_match = False
-        for pattern_regex, matches in result.results.items():
+        for _, matches in result.results.items():
             for match in matches:
                 if "main" in match.context:
                     found_match = True
@@ -803,9 +805,8 @@ pub fn test() { invalid rust syntax }
         assert result.success is True
 
         # Then check that compilation fails
-        from portkit.implfuzz import CompileError
         with pytest.raises(CompileError):
-            compile_rust_project(ctx.project_root / "rust")
+            compile_rust_project(ctx.project_root / "rust", ctx=ctx)
 
 
 def test_generate_unified_prompt_function_basic():

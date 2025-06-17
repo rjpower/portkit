@@ -28,9 +28,7 @@ class InterruptHandler:
 
     def _handle_signal(self, signum, frame):
         """Handle SIGINT by prompting user."""
-        print(
-            "\n⚠️  Process interrupted! Enter your message (or press Enter to continue):"
-        )
+        print("\nProcess interrupted! Enter your message (or press Enter to continue):")
         try:
             user_input = input().strip()
             self._interrupt_requested = True

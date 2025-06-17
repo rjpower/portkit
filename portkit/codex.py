@@ -4,11 +4,11 @@ import tempfile
 from pathlib import Path
 from typing import Any, Protocol
 
-from portkit.console import Console
+from rich.console import Console
 
 
 class ToolContext(Protocol):
-    console: Console  # Our custom Console, not Rich's
+    console: Console
     project_root: Path
 
 
@@ -25,12 +25,13 @@ async def call_with_codex_retry(
     ctx: ToolContext,
 ) -> list[dict[str, Any]]:
     """Call Codex with retry and completion checking."""
-    
+
     def _check_status(initial: bool):
         try:
             return completion_fn(initial=initial)
         except Exception as e:
-            from portkit.tinyagent import TaskStatus
+            from portkit.tinyagent.agent import TaskStatus
+
             status = TaskStatus()
             status.error(str(e))
             return status
@@ -46,9 +47,9 @@ async def call_with_codex_retry(
 
     for attempt in range(max_attempts):
         ctx.console.print(f"[bold cyan]Codex attempt {attempt + 1} of {max_attempts}[/bold cyan]")
-        
+
         messages = await call_with_codex(messages, project_root, ctx=ctx)
-        
+
         # Check completion status
         last_message = messages[-1] if messages else {}
         if last_message.get("role") == "assistant":
@@ -64,14 +65,14 @@ async def call_with_codex_retry(
             elif "GIVE UP" in content:
                 ctx.console.print("[red]Codex signaled it cannot proceed further[/red]")
                 raise Exception(f"Codex gave up: {content}")
-        
+
         # Check status after this attempt
         status = _check_status(initial=False)
         if status.is_done():
             return messages
         elif attempt < max_attempts - 1:
             messages.append({"role": "user", "content": status.get_feedback()})
-    
+
     raise Exception("Codex failed to complete task after all attempts")
 
 

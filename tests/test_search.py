@@ -10,11 +10,9 @@ import pytest
 
 from portkit.implfuzz import (
     BuilderContext,
-    SearchRequest,
-    SearchSpec,
-    search_files,
 )
 from portkit.sourcemap import SourceMap
+from portkit.tinyagent.agent import SearchRequest, SearchSpec, search_files
 
 
 def create_test_context(project_root: Path) -> BuilderContext:
@@ -55,7 +53,7 @@ def test_search_files_success():
 
         # Check that we found matches
         found_paths = set()
-        for pattern_regex, matches in result.results.items():
+        for _, matches in result.results.items():
             for match in matches:
                 found_paths.add(match.path)
                 assert hasattr(match, "line")
@@ -102,7 +100,7 @@ def test_search_files_multiple_searches():
 
         # Check that we found the expected content in matches
         all_contexts = []
-        for pattern_regex, matches in result.results.items():
+        for _, matches in result.results.items():
             for match in matches:
                 all_contexts.append(match.context)
 
@@ -144,7 +142,7 @@ def test_search_files_context_lines():
         # Should find the match with minimal context
         assert len(result.results) > 0
         found_match = False
-        for pattern_regex, matches in result.results.items():
+        for _, matches in result.results.items():
             for match in matches:
                 if "main" in match.context:
                     found_match = True
@@ -161,7 +159,7 @@ def test_search_files_context_lines():
         # Should find the match with more context
         assert len(result.results) > 0
         found_match = False
-        for pattern_regex, matches in result.results.items():
+        for _, matches in result.results.items():
             for match in matches:
                 if "main" in match.context:
                     found_match = True
@@ -199,7 +197,7 @@ def test_search_files_regex_patterns():
         # Should find multiple function matches
         assert len(result.results) > 0
         func_matches = 0
-        for pattern_regex, matches in result.results.items():
+        for _, matches in result.results.items():
             for match in matches:
                 if "func" in match.context:
                     func_matches += 1

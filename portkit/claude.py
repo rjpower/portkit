@@ -3,7 +3,7 @@
 import subprocess
 from pathlib import Path
 
-from portkit.sourcemap import SourceMap, Symbol, SymbolInfo
+from portkit.sourcemap import SourceMap, Symbol
 
 
 def compile_project(project_root: Path) -> None:
@@ -37,7 +37,7 @@ def call_claude_code(prompt: str, working_dir: Path) -> None:
 
 
 def create_claude_fuzz_prompt(
-    symbol: Symbol, c_source: str, source_map: SourceMap, project_root: Path
+    symbol: Symbol, source_map: SourceMap, project_root: Path
 ) -> str:
     from portkit.implfuzz import load_prompt
 
@@ -72,9 +72,6 @@ def create_claude_fuzz_prompt(
 
 Symbol: {symbol.name}
 Kind: {symbol.kind}
-C Source: <symbol>
-{c_source}
-</symbol>
 
 Project structure:
 - C source is in src/
@@ -108,61 +105,19 @@ Create:
 <fuzzing>
 {load_prompt("example_fuzz_test")}
 </fuzzing>
-"""
 
+<c_declaration>
+{c_declaration}
+</c_declaration>
 
-def create_claude_impl_prompt(
-    symbol: Symbol, c_source: str, source_map: SourceMap, project_root: Path
-) -> str:
-    """Create a prompt for Claude Code to generate the full implementation."""
-    locations = source_map.lookup_symbol(symbol.name)
-
-    # Determine the module name from locations
-    rust_module = "unknown"
-    if locations.rust_src_path:
-        rust_module = Path(locations.rust_src_path).stem
-    elif symbol.source_path:
-        rust_module = symbol.source_path.stem
-    elif symbol.header_path:
-        rust_module = symbol.header_path.stem
-
-    return f"""You are an expert C to Rust translator. Implement the following C symbol in Rust.
-
-Symbol: {symbol.name}
-Kind: {symbol.kind}
-C Source: <symbol>
-{c_source}
-</symbol>
-
-Requirements:
-- Exactly match the C implementation's behavior
-- Use idiomatic Rust while maintaining exact behavioral compatibility
-- Replace the existing stub implementation
-- All C dependencies have already been implemented in Rust
-
-Project structure:
-- There is an existing stub in rust/src/{rust_module}.rs
-- Replace the stub with complete implementation
-- Fuzz test exists at rust/fuzz/fuzz_targets/fuzz_{symbol.name}.rs
-
-Guidelines:
-- Assume all ifdefs are set to defined when reading C code
-- Use the same symbol names for Rust and C code
-- Don't switch to snake case
-- Static functions in header files have been exported
-
-Testing instructions:
-- After implementing, run the fuzz test with: `cargo fuzz run fuzz_{symbol.name} -- -max_total_time=10`
-- If the fuzz test fails, analyze the failure and fix the implementation
-- Iterate until the fuzz test passes consistently
-- The fuzz test compares your Rust implementation against the C version via FFI
-
-Implement the Rust version of {symbol.name} and iterate until the fuzz test passes.
+<c_source>
+{c_definition}
+</c_source>
 """
 
 
 async def port_symbol_claude(
-    symbol: Symbol, c_source: str, *, project_root: Path, source_map: SourceMap
+    symbol: Symbol, *, project_root: Path, source_map: SourceMap
 ) -> None:
     """Port a single symbol using Claude Code."""
     print(
@@ -195,31 +150,10 @@ async def port_symbol_claude(
         print(f"Symbol {symbol.name} is already fully ported, skipping...")
         return
 
-    if not ffi_exists or not rust_impl_exists or not fuzz_exists:
-        print(f"\nGenerating stub, FFI, and fuzz test for {symbol.name}...")
-        stub_fuzz_prompt = create_claude_fuzz_prompt(
-            symbol, c_source, source_map, project_root
-        )
-        call_claude_code(stub_fuzz_prompt, project_root)
-        print(f"Stub, FFI, and fuzz test generation completed for {symbol.name}")
+    print(f"\nGenerating stub, FFI, and fuzz test for {symbol.name}...")
+    stub_fuzz_prompt = create_claude_fuzz_prompt(symbol, source_map, project_root)
+    call_claude_code(stub_fuzz_prompt, project_root)
+    print(f"Stub, FFI, and fuzz test generation completed for {symbol.name}")
 
-        compile_project(project_root)
-
-    # Refresh locations after stub generation
-    locations = source_map.lookup_symbol(symbol.name)
-
-    if symbol.kind != "struct" and locations.rust_src_path:
-        # Check if implementation is still needed
-        rust_content = source_map.find_rust_symbol_definition(
-            project_root / locations.rust_src_path, symbol.name
-        )
-        if rust_content and "unimplemented!()" in rust_content:
-            # Generate implementation with fuzz test iteration
-            print(f"\nGenerating implementation with fuzz testing for {symbol.name}...")
-            impl_prompt = create_claude_impl_prompt(
-                symbol, c_source, source_map, project_root
-            )
-            call_claude_code(impl_prompt, project_root)
-            print(f"Implementation with fuzz testing completed for {symbol.name}")
-
+    compile_project(project_root)
     print(f"\nSuccessfully processed {symbol.name}")

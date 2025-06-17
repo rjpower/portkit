@@ -16,11 +16,11 @@ from typing import Any, Protocol, cast
 
 import litellm
 from pydantic import BaseModel, Field
+from rich.console import Console
 
-from portkit.console import Console
-from portkit.interrupt import InterruptSignal
-from portkit.patch import DiffFencedPatcher
-from portkit.sourcemap import SourceMap, SymbolInfo
+from portkit.interrupt import InterruptHandler, InterruptSignal
+from portkit.sourcemap import SourceMap
+from portkit.tinyagent.patch import DiffFencedPatcher
 
 DEFAULT_FUZZ_TIMEOUT = 10
 # MODEL = "gemini/gemini-2.5-flash-preview-05-20"
@@ -30,14 +30,11 @@ MAX_LLM_CALLS = 25
 
 
 class ToolContext(Protocol):
-    console: Console  # Our custom Console, not Rich's
+    console: Console
     project_root: Path
     source_map: SourceMap
     read_files: set[str]
-    has_mutations: bool
-    processed_symbols: set[str]
-    failed_symbols: set[str]
-    interrupt_handler: Any  # InterruptHandler from implfuzz
+    interrupt_handler: InterruptHandler
 
 
 class TaskStatusType(str, Enum):
@@ -151,12 +148,9 @@ class ToolHandler:
             if self._context is None:
                 raise ValueError("No context set on ToolHandler")
 
-            function, arg_model, is_mutating = self._tools[tool_name]
+            function, arg_model, _ = self._tools[tool_name]
             args = arg_model.model_validate_json(args_json)
             self._context.console.print(f"[blue]Calling {tool_name} with args: {args}[/blue]")  # type: ignore
-
-            if is_mutating:
-                self._context.has_mutations = True
 
             result = function(args, ctx=self._context)
 
@@ -315,7 +309,6 @@ class CompletionProtocol(Protocol):
 
 async def call_with_retry(
     messages: list[dict[str, Any]],
-    tools: ToolHandler,
     completion_fn: CompletionProtocol,
     model: str = DEFAULT_MODEL,
     project_root: Path | None = None,
@@ -325,8 +318,8 @@ async def call_with_retry(
 ) -> list[dict[str, Any]]:
     """Stream completion with retry using TASK COMPLETE detection."""
 
-    if tools._context:
-        tools._context.reset_read_files()
+    TOOL_HANDLER.set_context(ctx)
+    ctx.read_files.clear()
 
     def _check_status(initial: bool) -> TaskStatus:
         try:
@@ -354,9 +347,7 @@ async def call_with_retry(
 
         # Call LLM with interrupt support
         try:
-            messages = await call_with_tools(
-                messages, tools, model, project_root, ctx=ctx
-            )
+            messages = await call_with_tools(messages, model, project_root, ctx=ctx)
         except Exception as e:
             # Check if this is an InterruptSignal
             if e.__class__.__name__ == "InterruptSignal":

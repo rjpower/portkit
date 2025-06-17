@@ -220,17 +220,6 @@ class SourceMap:
             code = file_path.read_bytes()
             tree = self.c_parser.parse(code)
 
-            # Query for C symbols
-            query = self.c_language.query("""
-                [
-                  (function_definition declarator: (function_declarator declarator: (identifier) @fn))
-                  (declaration declarator: (function_declarator declarator: (identifier) @fn_decl))
-                  (struct_specifier name: (type_identifier) @struct)
-                  (enum_specifier name: (type_identifier) @enum)
-                  (type_definition declarator: (type_identifier) @typedef)
-                ]
-            """)
-
             self._traverse_c_node(tree.root_node, file_path, code)
 
         except Exception as e:
@@ -733,7 +722,9 @@ class SourceMap:
         else:
             return "\n".join(lines)
 
-    def _extract_c_function_type_dependencies(self, node: Node, code: bytes) -> set[str]:
+    def _extract_c_function_type_dependencies(
+        self, node: Node, _code: bytes
+    ) -> set[str]:
         """Extract type dependencies from C function parameters and return type."""
         deps = set()
 
@@ -876,7 +867,7 @@ class SourceMap:
 
     def _resolve_transitive_dependencies(self):
         """Resolve transitive dependencies by combining type deps and call graph."""
-        for (symbol_name, language), symbol in self.symbols.items():
+        for (symbol_name, _), symbol in self.symbols.items():
             all_deps = set(symbol.type_dependencies)
 
             # Add function call dependencies if this is a function
@@ -979,7 +970,7 @@ class SourceMap:
 
             # Get successors (dependencies) - only for C symbols
             node_symbol = None
-            for (name, language), s in c_symbols.items():
+            for (name, _), s in c_symbols.items():
                 if name == node:
                     node_symbol = s
                     break
@@ -1199,7 +1190,6 @@ class SourceMap:
             info.rust_fuzz_path = f"rust/fuzz/fuzz_targets/fuzz_{symbol_name}.rs"
 
         return info
-
 
     def get_topo_ordered_dependencies(self, symbol_name: str) -> list[str]:
         """Get topologically ordered dependencies for a symbol."""

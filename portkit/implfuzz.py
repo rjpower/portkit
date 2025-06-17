@@ -7,19 +7,17 @@ from typing import Any
 
 import click
 from pydantic import BaseModel, Field
+from rich.console import Console
 
 from portkit.checkpoint import SourceCheckpoint
 from portkit.claude import port_symbol_claude
 from portkit.codex import call_with_codex_retry
-from portkit.console import Console
 from portkit.interrupt import InterruptHandler
 from portkit.sourcemap import (
     SourceMap,
     Symbol,
-    SymbolInfo,
 )
-from portkit.tinyagent import (
-    TOOL_HANDLER,
+from portkit.tinyagent.agent import (
     RunFuzzTestRequest,
     TaskStatus,
     call_with_retry,
@@ -52,12 +50,11 @@ UNIFIED_IMPLEMENTATION_PROMPT = f"""
 
 
 class BuilderContext(BaseModel):
-    console: Console
+    console: Console = Field(default_factory=Console)
     project_root: Path
     source_map: SourceMap
     editor_type: EditorType = EditorType.LITELLM
     read_files: set[str] = Field(default_factory=set)
-    has_mutations: bool = False
     processed_symbols: set[str] = Field(default_factory=set)
     failed_symbols: set[str] = Field(default_factory=set)
     interrupt_handler: InterruptHandler = Field(default_factory=InterruptHandler)
@@ -65,15 +62,6 @@ class BuilderContext(BaseModel):
     running_cost: float = 0.0
 
     model_config = {"arbitrary_types_allowed": True}
-
-    def reset_read_files(self) -> None:
-        """Reset the set of read files for a new LLM interaction."""
-        self.read_files.clear()
-        self.has_mutations = False
-
-    def reset_mutations(self) -> None:
-        """Reset the set of mutations for a new LLM interaction."""
-        self.has_mutations = False
 
     @property
     def rust_ffi_path(self) -> Path:
@@ -350,14 +338,12 @@ Repository structure and key symbols:
             messages, completion_fn, ctx.project_root, ctx=ctx
         )
     elif ctx.editor_type == EditorType.CLAUDE:
-        # Use Claude Code directly instead of LLM API
-        c_source = ctx.source_map.get_symbol_source_code(symbol.name)
         await port_symbol_claude(
-            symbol, c_source, project_root=ctx.project_root, source_map=ctx.source_map
+            symbol, project_root=ctx.project_root, source_map=ctx.source_map
         )
-        return completion_fn(False)  # Check final status
+        return completion_fn(False)
     else:
-        return await call_with_retry(messages, TOOL_HANDLER, completion_fn, ctx=ctx)
+        return await call_with_retry(messages, completion_fn, ctx=ctx)
 
 
 def write_logs(symbol_name: str, log_type: str, messages: list[dict[str, Any]]) -> None:
@@ -471,9 +457,6 @@ async def main_litellm():
         source_map=SourceMap(project_root),
         console=Console(),
     )
-    TOOL_HANDLER.set_context(ctx)
-
-    # Setup interrupt handler
     ctx.interrupt_handler.setup()
 
     try:
@@ -502,7 +485,6 @@ async def main_with_editor(editor_type: EditorType):
         editor_type=editor_type,
         console=Console(),
     )
-    TOOL_HANDLER.set_context(ctx)
 
     ctx.console.print(f"[bold green]Using editor: {editor_type.value}[/bold green]")
 
