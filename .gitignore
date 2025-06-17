@@ -1,3 +1,5 @@
+*.a
+.vscode/
 logs/
 node_modules/
 *.wal

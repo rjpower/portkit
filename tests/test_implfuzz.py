@@ -13,31 +13,42 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from portkit.implfuzz import (
+from portkit.console import Console
+from portkit.implfuzz import TOOL_HANDLER, BuilderContext
+from portkit.sourcemap import SourceMap, Symbol
+from portkit.tinyagent import (
     AppendFileRequest,
-    BuilderContext,
     EditCodeRequest,
     FuzzTestError,
     ReadFileRequest,
     RunFuzzTestRequest,
     SearchRequest,
+    SearchSpec,
     TaskStatus,
     TaskStatusType,
     WriteFileRequest,
     append_to_file,
     compile_rust_project,
     edit_code,
-    handler,
-    read_file,
-    run_rust_fuzz_test,
+    read_files,
+    replace_file,
+    run_fuzz_test,
     search_files,
-    write_file,
 )
+
+
+def create_test_context(project_root: Path) -> BuilderContext:
+    """Helper function to create BuilderContext for tests."""
+    return BuilderContext(
+        project_root=project_root,
+        source_map=SourceMap(project_root),
+        console=Console(),
+    )
 
 
 def test_tools_spec_generation():
     """Test that tool specs are generated correctly."""
-    specs = handler.get_tools_spec()
+    specs = TOOL_HANDLER.get_tools_spec()
     assert isinstance(specs, list)
     assert len(specs) > 0
 
@@ -57,24 +68,25 @@ def test_read_existing_c_source_file():
         temp_path = f.name
 
     try:
-        ctx = BuilderContext(project_root=Path(temp_path).parent)
+        ctx = create_test_context(Path(temp_path).parent)
 
-        request = ReadFileRequest(path=Path(temp_path).name)
-        result = read_file(request, ctx=ctx)
+        request = ReadFileRequest(paths=[Path(temp_path).name])
+        result = read_files(request, ctx=ctx, console=Console())
 
-        assert "/* Test header */" in result.source
-        assert "int test_function(void);" in result.source
+        file_content = result.files[Path(temp_path).name]
+        assert "/* Test header */" in file_content
+        assert "int test_function(void);" in file_content
     finally:
         Path(temp_path).unlink()
 
 
 def test_read_nonexistent_c_source_file():
     """Test reading a non-existent file raises appropriate error."""
-    ctx = BuilderContext(project_root=Path("/tmp"))
-    request = ReadFileRequest(path="nonexistent.h")
+    ctx = create_test_context(Path("/tmp"))
+    request = ReadFileRequest(paths=["nonexistent.h"])
 
     with pytest.raises(ValueError):
-        read_file(request, ctx=ctx)
+        read_files(request, ctx=ctx, console=Console())
 
 
 def test_append_rust_code_creates_file():
@@ -88,7 +100,7 @@ def test_append_rust_code_creates_file():
         # Create lib.rs
         (src_dir / "lib.rs").write_text("// lib.rs\n")
 
-        ctx = BuilderContext(project_root=temp_path)
+        ctx = create_test_context(temp_path)
 
         # Mock the compile function to return success
         with patch("portkit.implfuzz.compile_rust_project"):
@@ -96,7 +108,7 @@ def test_append_rust_code_creates_file():
             request = AppendFileRequest(
                 path="rust/src/test.rs", content="pub fn test() { unimplemented!(); }"
             )
-            result = append_to_file(request, ctx=ctx)
+            result = append_to_file(request, ctx=ctx, console=Console())
 
             assert result.success is True
 
@@ -123,12 +135,12 @@ def test_append_rust_code_appends_to_existing():
         test_file.write_text("existing content\n")
         (src_dir / "lib.rs").write_text("pub mod test;\n")
 
-        ctx = BuilderContext(project_root=temp_path)
+        ctx = create_test_context(temp_path)
 
         with patch("portkit.implfuzz.compile_rust_project"):
 
             request = AppendFileRequest(path="rust/src/test.rs", content="new content")
-            result = append_to_file(request, ctx=ctx)
+            result = append_to_file(request, ctx=ctx, console=Console())
 
             assert result.success is True
 
@@ -151,7 +163,7 @@ def test_write_fuzz_test_creates_file_and_cargo_entry():
         fuzz_cargo_toml = rust_dir / "fuzz" / "Cargo.toml"
         fuzz_cargo_toml.write_text('[package]\nname = "test"')
 
-        ctx = BuilderContext(project_root=temp_path)
+        ctx = create_test_context(temp_path)
 
         with patch("portkit.implfuzz.compile_rust_project"):
 
@@ -159,7 +171,7 @@ def test_write_fuzz_test_creates_file_and_cargo_entry():
                 path="rust/fuzz/fuzz_targets/test_target.rs",
                 content="#![no_main]\nuse libfuzzer_sys::fuzz_target;\nfuzz_target!(|data: &[u8]| {});",
             )
-            result = write_file(request, ctx=ctx)
+            result = replace_file(request, ctx=ctx, console=Console())
 
             assert result.success is True
 
@@ -194,11 +206,11 @@ path = "fuzz_targets/test_target.rs"
 """
         )
 
-        ctx = BuilderContext(project_root=temp_path)
+        ctx = create_test_context(temp_path)
 
         with patch("portkit.implfuzz.compile_rust_project"):
             request = WriteFileRequest(path="rust/fuzz/fuzz_targets/test_target.rs", content="test content")
-            result = write_file(request, ctx=ctx)
+            result = replace_file(request, ctx=ctx)
 
         # Should return success without trying to compile
         assert result.success is True
@@ -214,10 +226,10 @@ def test_run_fuzz_test_success(mock_subprocess):
     mock_subprocess.return_value = MagicMock(returncode=0, stderr="")
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        ctx = BuilderContext(project_root=Path(temp_dir))
+        ctx = create_test_context(Path(temp_dir))
 
         request = RunFuzzTestRequest(target="test_target", timeout=30)
-        result = run_rust_fuzz_test(request, ctx=ctx)
+        result = run_fuzz_test(request, ctx=ctx)
 
         assert result.success is True
 
@@ -240,11 +252,11 @@ def test_run_fuzz_test_failure(mock_subprocess):
     )
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        ctx = BuilderContext(project_root=Path(temp_dir))
+        ctx = create_test_context(Path(temp_dir))
 
         request = RunFuzzTestRequest(target="test_target")
         with pytest.raises(FuzzTestError):
-            run_rust_fuzz_test(request, ctx=ctx)
+            run_fuzz_test(request, ctx=ctx)
 
 
 @patch("portkit.implfuzz.subprocess.run")
@@ -252,7 +264,7 @@ def test_compile_rust_project_success(mock_subprocess):
     """Test successful compilation."""
     mock_subprocess.return_value = MagicMock(returncode=0, stderr="")
 
-    compile_rust_project(Path("/fake/path"))
+    compile_rust_project(Path("/fake/path"), ctx=ctx)
 
     mock_subprocess.assert_called()
 
@@ -268,7 +280,7 @@ def test_compile_rust_project_failure(mock_subprocess):
     )
 
     with pytest.raises(CompileError):
-        compile_rust_project(Path("/fake/path"))
+        compile_rust_project(Path("/fake/path"), ctx=ctx)
 
 
 def test_tool_execution_success():
@@ -278,11 +290,11 @@ def test_tool_execution_success():
         temp_path = f.name
 
     try:
-        ctx = BuilderContext(project_root=Path(temp_path).parent)
-        handler.set_context(ctx)
+        ctx = create_test_context(Path(temp_path).parent)
+        TOOL_HANDLER.set_context(ctx)
 
-        args_json = f'{{"path": "{Path(temp_path).name}"}}'
-        result = handler.run("read_file", args_json, "test_id")
+        args_json = f'{{"paths": ["{Path(temp_path).name}"]}}'
+        result = TOOL_HANDLER.run("read_files", args_json, "test_id")
 
         assert result["role"] == "tool"
         assert result["tool_call_id"] == "test_id"
@@ -293,11 +305,11 @@ def test_tool_execution_success():
 
 def test_tool_execution_error():
     """Test tool execution with error."""
-    ctx = BuilderContext(project_root=Path("/tmp"))
-    handler.set_context(ctx)
+    ctx = create_test_context(Path("/tmp"))
+    TOOL_HANDLER.set_context(ctx)
 
-    args_json = '{"path": "nonexistent.h"}'
-    result = handler.run("read_file", args_json, "test_id")
+    args_json = '{"paths": ["nonexistent.h"]}'
+    result = TOOL_HANDLER.run("read_files", args_json, "test_id")
 
     assert result["role"] == "tool"
     assert result["tool_call_id"] == "test_id"
@@ -310,10 +322,10 @@ def test_tool_execution_error():
 
 def test_unknown_tool_error():
     """Test calling unknown tool."""
-    ctx = BuilderContext(project_root=Path("/tmp"))
-    handler.set_context(ctx)
+    ctx = create_test_context(Path("/tmp"))
+    TOOL_HANDLER.set_context(ctx)
 
-    result = handler.run("unknown_tool", "{}", "test_id")
+    result = TOOL_HANDLER.run("unknown_tool", "{}", "test_id")
 
     content = json.loads(result["content"])
     assert "error" in content
@@ -325,7 +337,7 @@ def test_context_creation():
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
 
-        ctx = BuilderContext(project_root=temp_path)
+        ctx = create_test_context(temp_path)
 
         # Verify the context was created correctly
         assert ctx.project_root == temp_path
@@ -358,52 +370,216 @@ def test_task_status_with_errors():
     assert "Second error message" in feedback
 
 
-@patch("portkit.implfuzz.subprocess.run")
-def test_search_files_success(mock_subprocess):
+def test_search_files_success():
     """Test successful search_files execution."""
-    mock_subprocess.return_value = MagicMock(
-        returncode=0,
-        stdout="src/file1.c:10:int main() {\nsrc/file2.h:15:extern int func();"
-    )
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        src_dir = temp_path / "src"
+        src_dir.mkdir()
 
+        # Create test files with content to search
+        test_c_file = src_dir / "test.c"
+        test_c_file.write_text("int main() {\n    return 0;\n}")
+
+        test_h_file = src_dir / "test.h"
+        test_h_file.write_text("extern int func();\nstruct TestStruct {\n    int value;\n};")
+
+        ctx = create_test_context(temp_path)
+
+        # Test single search
+        request = SearchRequest(searches=[
+            SearchSpec(pattern="int", directory="src", context_lines=1)
+        ])
+        result = search_files(request, ctx=ctx)
+
+        # Should find matches in both files
+        assert isinstance(result.results, dict)
+        assert len(result.results) > 0
+
+        # Check that we found matches
+        found_paths = set()
+        for _, matches in result.results.items():
+            for match in matches:
+                found_paths.add(match.path)
+                assert hasattr(match, 'line')
+                assert hasattr(match, 'context')
+                assert isinstance(match.line, int)
+                assert "int" in match.context
+
+        # Should find matches in both test files
+        assert "src/test.c" in found_paths
+        assert "src/test.h" in found_paths
+
+
+def test_search_files_multiple_searches():
+    """Test search_files with multiple search patterns."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        src_dir = temp_path / "src"
+        src_dir.mkdir()
+
+        # Create test files with different content
+        test_c_file = src_dir / "test.c"
+        test_c_file.write_text("int main() {\n    printf(\"Hello\");\n    return 0;\n}")
+
+        test_h_file = src_dir / "test.h"
+        test_h_file.write_text("struct TestStruct {\n    float value;\n    char* name;\n};")
+
+        ctx = create_test_context(temp_path)
+
+        # Test multiple searches with different patterns
+        request = SearchRequest(searches=[
+            SearchSpec(pattern="int", directory="src", context_lines=1),
+            SearchSpec(pattern="struct", directory="src", context_lines=0),
+            SearchSpec(pattern="char\\*", directory="src", context_lines=2)
+        ])
+        result = search_files(request, ctx=ctx)
+
+        # Should find matches for all patterns
+        assert isinstance(result.results, dict)
+        assert len(result.results) >= 3  # At least one match for each pattern
+
+        # Check that we found the expected content in matches
+        all_contexts = []
+        for _, matches in result.results.items():
+            for match in matches:
+                all_contexts.append(match.context)
+
+        combined_context = " ".join(all_contexts)
+        assert "int" in combined_context or "struct" in combined_context or "char*" in combined_context
+
+
+def test_search_files_context_lines():
+    """Test search_files with different context line settings."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        src_dir = temp_path / "src"
+        src_dir.mkdir()
+
+        # Create a file with multiple lines
+        test_file = src_dir / "test.c"
+        test_file.write_text(
+            "// Header comment\n"
+            "// Another comment\n"
+            "int main() {\n"
+            "    printf(\"Hello\");\n"
+            "    return 0;\n"
+            "}\n"
+            "// End comment"
+        )
+
+        ctx = create_test_context(temp_path)
+
+        # Test with 0 context lines
+        request = SearchRequest(searches=[
+            SearchSpec(pattern="main", directory="src", context_lines=0)
+        ])
+        result = search_files(request, ctx=ctx)
+
+        # Should find the match with minimal context
+        assert len(result.results) > 0
+        found_match = False
+        for _, matches in result.results.items():
+            for match in matches:
+                if "main" in match.context:
+                    found_match = True
+                    # With 0 context lines, should only contain the matching line
+                    assert match.context.count('\n') <= 1
+        assert found_match
+
+        # Test with more context lines
+        request = SearchRequest(searches=[
+            SearchSpec(pattern="main", directory="src", context_lines=2)
+        ])
+        result = search_files(request, ctx=ctx)
+
+        # Should find the match with more context
+        assert len(result.results) > 0
+        found_match = False
+        for pattern_regex, matches in result.results.items():
+            for match in matches:
+                if "main" in match.context:
+                    found_match = True
+                    # Should include surrounding lines
+                    assert "comment" in match.context.lower() or "printf" in match.context
+        assert found_match
+
+
+def test_search_files_regex_patterns():
+    """Test search_files with regex patterns."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        src_dir = temp_path / "src"
+        src_dir.mkdir()
+
+        # Create test file with various patterns
+        test_file = src_dir / "test.c"
+        test_file.write_text(
+            "void func1() {}\n"
+            "int func2(int x) { return x; }\n"
+            "float func3(float y) { return y * 2; }\n"
+            "char* getString() { return \"hello\"; }\n"
+        )
+
+        ctx = create_test_context(temp_path)
+
+        # Test regex pattern matching function definitions
+        request = SearchRequest(searches=[
+            SearchSpec(pattern=r"func\d+", directory="src", context_lines=0)
+        ])
+        result = search_files(request, ctx=ctx)
+
+        # Should find multiple function matches
+        assert len(result.results) > 0
+        func_matches = 0
+        for _, matches in result.results.items():
+            for match in matches:
+                if "func" in match.context:
+                    func_matches += 1
+        assert func_matches >= 3  # Should find func1, func2, func3
+
+
+def test_search_files_no_matches():
+    """Test search_files when no matches are found."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         src_dir = temp_path / "src"
         src_dir.mkdir()
         
-        ctx = BuilderContext(project_root=temp_path)
+        # Create test file without the search pattern
+        test_file = src_dir / "test.c"
+        test_file.write_text("int main() {\n    return 0;\n}")
+        
+        ctx = create_test_context(temp_path)
 
-        request = SearchRequest(pattern="int", directory="src", context_lines=2)
+        # Search for pattern that doesn't exist
+        request = SearchRequest(searches=[
+            SearchSpec(pattern="nonexistent_pattern", directory="src", context_lines=1)
+        ])
         result = search_files(request, ctx=ctx)
 
-        assert "src/file1.c:10:int main()" in result.match_output
-        assert "src/file2.h:15:extern int func()" in result.match_output
-
-        # Check subprocess was called with correct arguments
-        mock_subprocess.assert_called_once()
-        args = mock_subprocess.call_args[0][0]
-        assert "grep" in args
-        assert "-rn" in args
-        assert "-C2" in args
-        assert "--include=*.c" in args
-        assert "--include=*.h" in args
-        assert "--include=*.rs" in args
-        assert "int" in args
+        # Should return empty results
+        assert isinstance(result.results, dict)
+        # Either empty dict or contains empty lists
+        total_matches = sum(len(matches) for matches in result.results.values())
+        assert total_matches == 0
 
 
 def test_search_files_nonexistent_directory():
     """Test search_files with non-existent directory."""
-    ctx = BuilderContext(project_root=Path("/tmp"))
+    ctx = create_test_context(Path("/tmp"))
 
-    request = SearchRequest(pattern="test", directory="nonexistent")
+    request = SearchRequest(searches=[
+        SearchSpec(pattern="test", directory="nonexistent")
+    ])
 
     with pytest.raises(ValueError, match="Directory nonexistent does not exist"):
         search_files(request, ctx=ctx)
 
 
 @patch("portkit.implfuzz.compile_rust_project")
-def test_edit_code_success(mock_compile):
-    """Test successful edit_code execution with unified diff patch."""
+def test_edit_code_success(_):
+    """Test successful edit_code execution with Codex patch."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         rust_dir = temp_path / "rust"
@@ -414,34 +590,29 @@ def test_edit_code_success(mock_compile):
         test_file = src_dir / "test.rs"
         test_file.write_text("pub fn test() { unimplemented!(); }\n")
 
-        ctx = BuilderContext(project_root=temp_path)
+        ctx = create_test_context(temp_path)
 
         # Working patch format
-        patch_content = """--- test.rs.orig
-+++ test.rs
-@@ -1 +1 @@
--pub fn test() { unimplemented!(); }
-+pub fn test() { println!(\"Hello\"); }"""
+        patch_content = """rust/src/test.rs
+<<<<<<< SEARCH
+pub fn test() { unimplemented!(); }
+=======
+pub fn test() { println!("Hello"); }
+>>>>>>> REPLACE"""
 
-        request = EditCodeRequest(path="rust/src/test.rs", patch=patch_content)
+        request = EditCodeRequest(patch=patch_content)
         result = edit_code(request, ctx=ctx)
 
         assert result.success is True
-        
+
         # Verify the file was actually patched
         updated_content = test_file.read_text()
         assert "println!" in updated_content
         assert "unimplemented!" not in updated_content
 
 
-@patch("portkit.implfuzz.subprocess.run")
-def test_edit_code_patch_failure(mock_subprocess):
+def test_edit_code_patch_failure():
     """Test edit_code handling patch application failure."""
-    # Mock failed patch application for all strip levels and git apply
-    mock_subprocess.return_value = MagicMock(
-        returncode=1, stderr="patch: malformed patch at line 10"
-    )
-
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         rust_dir = temp_path / "rust"
@@ -451,35 +622,40 @@ def test_edit_code_patch_failure(mock_subprocess):
         test_file = src_dir / "test.rs"
         test_file.write_text("pub fn test() { unimplemented!(); }")
 
-        ctx = BuilderContext(project_root=temp_path)
+        ctx = create_test_context(temp_path)
 
-        patch_content = """--- a/rust/src/test.rs
-+++ b/rust/src/test.rs
-@@ -1,1 +1,1 @@
--pub fn test() { unimplemented!(); }
-+pub fn test() { println!("Hello"); }"""
+        # Create a malformed patch that will fail
+        patch_content = """rust/src/test.rs
+<<<<<<< SEARCH
+this line does not exist in the file
+=======
+pub fn test() { println!("Hello"); }
+>>>>>>> REPLACE"""
 
-        request = EditCodeRequest(path="rust/src/test.rs", patch=patch_content)
+        request = EditCodeRequest(patch=patch_content)
+        result = edit_code(request, ctx=ctx)
 
-        with pytest.raises(ValueError, match="All patch application strategies failed"):
-            edit_code(request, ctx=ctx)
+        assert result.success is False
+        assert len(result.messages) > 0
 
 
 def test_edit_code_nonexistent_file():
     """Test edit_code with non-existent file."""
     with tempfile.TemporaryDirectory() as temp_dir:
-        ctx = BuilderContext(project_root=Path(temp_dir))
+        ctx = create_test_context(Path(temp_dir))
 
-        patch_content = """--- a/nonexistent.rs
-+++ b/nonexistent.rs
-@@ -1,1 +1,1 @@
--old line
-+new line"""
+        patch_content = """rust/src/nonexistent.rs
+<<<<<<< SEARCH
+old line
+=======
+new line
+>>>>>>> REPLACE"""
 
-        request = EditCodeRequest(path="nonexistent.rs", patch=patch_content)
+        request = EditCodeRequest(patch=patch_content)
+        result = edit_code(request, ctx=ctx)
 
-        with pytest.raises(ValueError, match="File nonexistent.rs does not exist"):
-            edit_code(request, ctx=ctx)
+        assert result.success is False
+        assert len(result.messages) > 0
 
 
 def test_edit_code_invalid_path():
@@ -491,115 +667,55 @@ def test_edit_code_invalid_path():
         test_file = temp_path / "test.rs"
         test_file.write_text("test content")
 
-        ctx = BuilderContext(project_root=temp_path)
+        ctx = create_test_context(temp_path)
 
-        patch_content = """--- a/test.rs
-+++ b/test.rs
-@@ -1,1 +1,1 @@
--test content
-+new content"""
+        patch_content = """test.rs
+<<<<<<< SEARCH
+test content
+=======
+new content
+>>>>>>> REPLACE"""
 
-        request = EditCodeRequest(path="test.rs", patch=patch_content)
+        request = EditCodeRequest(patch=patch_content)
+        result = edit_code(request, ctx=ctx)
 
-        with pytest.raises(
-            ValueError, match="must be in the rust/src or rust/fuzz directory"
-        ):
-            edit_code(request, ctx=ctx)
+        assert result.success is False
+        assert len(result.messages) > 0
 
 
-@patch("portkit.implfuzz.subprocess.run")
-def test_edit_code_multiple_strip_levels(mock_subprocess):
-    """Test edit_code trying multiple strip levels before succeeding."""
-    # Mock failed patch at strip level 0 and 1, success at strip level 2
-    mock_subprocess.side_effect = [
-        MagicMock(returncode=1, stderr="patch failed"),  # dry-run p0
-        MagicMock(returncode=1, stderr="patch failed"),  # dry-run p1
-        MagicMock(returncode=0, stderr=""),  # dry-run p2 (success)
-        MagicMock(returncode=0, stderr=""),  # actual patch p2
-        MagicMock(returncode=0, stderr=""),  # cargo clean (rust dir)
-        MagicMock(returncode=0, stderr=""),  # cargo clean (fuzz dir)
-        MagicMock(returncode=0, stderr=""),  # cargo fuzz build
-    ]
-
+def test_edit_code_multiple_strip_levels():
+    """Test edit_code with Codex patch format."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         rust_dir = temp_path / "rust"
         src_dir = rust_dir / "src"
-        fuzz_dir = rust_dir / "fuzz"
         src_dir.mkdir(parents=True)
-        fuzz_dir.mkdir(parents=True)
 
         test_file = src_dir / "test.rs"
-        test_file.write_text("pub fn test() { unimplemented!(); }")
+        test_file.write_text("pub fn test() { unimplemented!(); }\n")
 
-        ctx = BuilderContext(project_root=temp_path)
+        ctx = create_test_context(temp_path)
 
-        patch_content = """--- a/rust/src/test.rs
-+++ b/rust/src/test.rs
-@@ -1,1 +1,1 @@
--pub fn test() { unimplemented!(); }
-+pub fn test() { println!("Hello"); }"""
+        # Create a working patch
+        patch_content = """rust/src/test.rs
+<<<<<<< SEARCH
+pub fn test() { unimplemented!(); }
+=======
+pub fn test() { println!("Hello"); }
+>>>>>>> REPLACE"""
 
-        request = EditCodeRequest(path="rust/src/test.rs", patch=patch_content)
+        request = EditCodeRequest(patch=patch_content)
         result = edit_code(request, ctx=ctx)
 
         assert result.success is True
-        
-        # Verify we tried multiple strip levels
-        patch_calls = [call for call in mock_subprocess.call_args_list if "patch" in str(call)]
-        assert len(patch_calls) >= 4  # 3 dry-runs + 1 actual patch
+
+        # Verify the file was actually patched
+        updated_content = test_file.read_text()
+        assert "println!" in updated_content
+        assert "unimplemented!" not in updated_content
 
 
-@patch("portkit.implfuzz.subprocess.run")
-def test_edit_code_git_apply_fallback(mock_subprocess):
-    """Test edit_code falling back to git apply when patch fails."""
-    # Mock patch failure but git apply success
-    mock_subprocess.side_effect = [
-        MagicMock(returncode=1, stderr="patch failed"),  # patch p0
-        MagicMock(returncode=1, stderr="patch failed"),  # patch p1
-        MagicMock(returncode=1, stderr="patch failed"),  # patch p2
-        MagicMock(returncode=0, stderr=""),  # git apply (success)
-        MagicMock(returncode=0, stderr=""),  # cargo clean (rust dir)
-        MagicMock(returncode=0, stderr=""),  # cargo clean (fuzz dir)
-        MagicMock(returncode=0, stderr=""),  # cargo fuzz build
-    ]
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir)
-        rust_dir = temp_path / "rust"
-        src_dir = rust_dir / "src"
-        fuzz_dir = rust_dir / "fuzz"
-        src_dir.mkdir(parents=True)
-        fuzz_dir.mkdir(parents=True)
-
-        test_file = src_dir / "test.rs"
-        test_file.write_text("pub fn test() { unimplemented!(); }")
-
-        ctx = BuilderContext(project_root=temp_path)
-
-        patch_content = """--- a/rust/src/test.rs
-+++ b/rust/src/test.rs
-@@ -1,1 +1,1 @@
--pub fn test() { unimplemented!(); }
-+pub fn test() { println!("Hello"); }"""
-
-        request = EditCodeRequest(path="rust/src/test.rs", patch=patch_content)
-        result = edit_code(request, ctx=ctx)
-
-        assert result.success is True
-        
-        # Verify git apply was called
-        git_calls = [call for call in mock_subprocess.call_args_list if "git" in str(call)]
-        assert len(git_calls) == 1
-        git_args = git_calls[0][0][0]
-        assert "git" in git_args
-        assert "apply" in git_args
-        assert "--ignore-whitespace" in git_args
-        assert "--3way" in git_args
-
-
-@patch("portkit.implfuzz.compile_rust_project")
-def test_edit_code_fuzz_directory(mock_compile):
+def test_edit_code_fuzz_directory():
     """Test edit_code works with files in rust/fuzz directory."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
@@ -610,27 +726,30 @@ def test_edit_code_fuzz_directory(mock_compile):
         test_file = fuzz_dir / "test_fuzz.rs"
         test_file.write_text("#![no_main]\nuse libfuzzer_sys::fuzz_target;\n")
 
-        ctx = BuilderContext(project_root=temp_path)
+        ctx = create_test_context(temp_path)
 
-        patch_content = """--- test_fuzz.rs.orig
-+++ test_fuzz.rs
-@@ -1,2 +1,3 @@
- #![no_main]
- use libfuzzer_sys::fuzz_target;
-+fuzz_target!(|data: &[u8]| {});"""
+        patch_content = """rust/fuzz/fuzz_targets/test_fuzz.rs
+<<<<<<< SEARCH
+#![no_main]
+use libfuzzer_sys::fuzz_target;
+=======
+#![no_main]
+use libfuzzer_sys::fuzz_target;
 
-        request = EditCodeRequest(path="rust/fuzz/fuzz_targets/test_fuzz.rs", patch=patch_content)
+fuzz_target!(|data: &[u8]| {});
+>>>>>>> REPLACE"""
+
+        request = EditCodeRequest(patch=patch_content)
         result = edit_code(request, ctx=ctx)
 
         assert result.success is True
-        
+
         # Verify the file was actually patched
         updated_content = test_file.read_text()
         assert "fuzz_target!" in updated_content
 
 
-@patch("portkit.implfuzz.compile_rust_project")
-def test_edit_code_cleanup_temp_file(mock_compile):
+def test_edit_code_cleanup_temp_file():
     """Test edit_code cleans up temporary patch file even on failure."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
@@ -641,30 +760,22 @@ def test_edit_code_cleanup_temp_file(mock_compile):
         test_file = src_dir / "test.rs"
         test_file.write_text("pub fn test() { unimplemented!(); }")
 
-        ctx = BuilderContext(project_root=temp_path)
+        ctx = create_test_context(temp_path)
 
         # Use a malformed patch that will fail
         patch_content = """this is not a valid patch format"""
 
-        request = EditCodeRequest(path="rust/src/test.rs", patch=patch_content)
+        request = EditCodeRequest(patch=patch_content)
+        result = edit_code(request, ctx=ctx)
 
-        with pytest.raises(ValueError):
-            edit_code(request, ctx=ctx)
+        assert result.success is False
+        assert len(result.messages) > 0
 
         # Test passes if no exception is raised during cleanup
 
 
-@patch("portkit.implfuzz.subprocess.run")
-def test_edit_code_compilation_failure_after_patch(mock_subprocess):
+def test_edit_code_compilation_failure_after_patch():
     """Test edit_code when patch succeeds but compilation fails."""
-    mock_subprocess.side_effect = [
-        MagicMock(returncode=0, stderr=""),  # patch dry-run (success)
-        MagicMock(returncode=0, stderr=""),  # actual patch (success)
-        MagicMock(returncode=0, stderr=""),  # cargo clean (rust dir)
-        MagicMock(returncode=0, stderr=""),  # cargo clean (fuzz dir)
-        MagicMock(returncode=1, stderr="error: expected `;`"),  # cargo fuzz build (fail)
-    ]
-
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         rust_dir = temp_path / "rust"
@@ -674,22 +785,424 @@ def test_edit_code_compilation_failure_after_patch(mock_subprocess):
         fuzz_dir.mkdir(parents=True)
 
         test_file = src_dir / "test.rs"
-        test_file.write_text("pub fn test() { unimplemented!(); }")
+        test_file.write_text("pub fn test() { unimplemented!(); }\n")
 
-        ctx = BuilderContext(project_root=temp_path)
+        ctx = create_test_context(temp_path)
 
-        patch_content = """--- a/rust/src/test.rs
-+++ b/rust/src/test.rs
-@@ -1,1 +1,1 @@
--pub fn test() { unimplemented!(); }
-+pub fn test() { invalid rust syntax }"""
+        patch_content = """rust/src/test.rs
+<<<<<<< SEARCH
+pub fn test() { unimplemented!(); }
+=======
+pub fn test() { invalid rust syntax }
+>>>>>>> REPLACE"""
 
-        request = EditCodeRequest(path="rust/src/test.rs", patch=patch_content)
+        request = EditCodeRequest(patch=patch_content)
 
-        # Should raise CompileError from compile_rust_project
+        # Apply the patch first
+        result = edit_code(request, ctx=ctx)
+        assert result.success is True
+
+        # Then check that compilation fails
         from portkit.implfuzz import CompileError
         with pytest.raises(CompileError):
-            edit_code(request, ctx=ctx)
+            compile_rust_project(ctx.project_root / "rust")
+
+
+def test_generate_unified_prompt_function_basic():
+    """Test generate_unified_prompt with basic function parameters."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+
+        # Create the directory structure
+        (temp_path / "src" / "zopfli").mkdir(parents=True)
+
+        # Create test header file with symbol declaration
+        test_header = temp_path / "src" / "zopfli" / "test.h"
+        test_header.write_text("int test_function(int x);")
+
+        # Create test source file with symbol definition
+        test_source = temp_path / "src" / "zopfli" / "test.c"
+        test_source.write_text("int test_function(int x) { return x + 1; }")
+
+        ctx = create_test_context(temp_path)
+
+        # Get symbols (parsing happens at SourceMap init)
+        symbols = ctx.source_map.parse_project()
+
+        # Find the parsed symbol or create one if not found
+        parsed_symbol = None
+        for s in symbols:
+            if s.name == "test_function" and s.language == "c":
+                parsed_symbol = s
+                break
+
+        if parsed_symbol:
+            symbol = parsed_symbol
+        else:
+            # Create a Symbol object with relative paths as fallback
+            symbol = Symbol(
+                name="test_function",
+                kind="function",
+                language="c",
+                signature="int test_function(int x)",
+                declaration_file=test_header.relative_to(temp_path),
+                declaration_line=1,
+                definition_file=test_source.relative_to(temp_path),
+                definition_line=1,
+            )
+
+        prompt = generate_unified_prompt(
+            symbol=symbol,
+            ctx=ctx,
+        )
+
+        # Check that basic prompt structure exists
+        assert "Port this symbol: test_function" in prompt
+        assert "Kind: function" in prompt
+        assert "C Header: src/zopfli/test.h" in prompt
+        assert "C Source: src/zopfli/test.c" in prompt
+        # Check that basic structure includes references to file paths
+        assert "test_function" in prompt
+        assert "function" in prompt
+
+        # Check C declaration and definition tags (updated)
+        assert "<c_declaration>" in prompt
+        assert "<c_definition>" in prompt
+        assert "int test_function(int x) { return x + 1; }" in prompt
+        assert "</c_declaration>" in prompt
+        assert "</c_definition>" in prompt
+
+        # Check that no Rust source or fuzz test tags appear since they're empty
+        assert "<rust_symbol_definition>" not in prompt
+        assert "<fuzz_test>" not in prompt
+
+        # Check that processed symbols section appears but is empty
+        assert "<processed_symbols>" in prompt
+
+
+def test_generate_unified_prompt_struct_no_fuzz_test():
+    """Test generate_unified_prompt with struct type (no fuzz test)."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+
+        # Create the directory structure
+        (temp_path / "src" / "zopfli").mkdir(parents=True)
+
+        # Create test header file with struct definition
+        test_header = temp_path / "src" / "zopfli" / "test.h"
+        test_header.write_text("struct TestStruct { int x; int y; };")
+
+        # Create test source file
+        test_source = temp_path / "src" / "zopfli" / "test.c"
+        test_source.write_text("// source file")
+
+        ctx = create_test_context(temp_path)
+
+        # Create a Symbol object with relative paths
+        symbol = Symbol(
+            name="TestStruct",
+            kind="struct",
+            language="c",
+            signature="struct TestStruct { int x; int y; };",
+            declaration_file=test_header.relative_to(temp_path),
+            declaration_line=1,
+        )
+
+        prompt = generate_unified_prompt(
+            symbol=symbol,
+            ctx=ctx,
+        )
+
+        # Check that fuzz test content is not included when file doesn't exist
+        assert "<fuzz_test>" not in prompt
+
+        # Check C source is still included
+        assert "struct TestStruct { int x; int y; }" in prompt
+
+
+def test_generate_unified_prompt_with_existing_rust_code():
+    """Test generate_unified_prompt with existing Rust source content."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+
+        # Create the directory structure
+        (temp_path / "src" / "zopfli").mkdir(parents=True)
+        (temp_path / "rust" / "src").mkdir(parents=True)
+
+        # Create test header file with symbol definition
+        test_header = temp_path / "src" / "zopfli" / "test.h"
+        test_header.write_text("int test_function(int x) { return x + 1; }")
+
+        # Create Rust source file with existing content
+        rust_src = temp_path / "rust" / "src" / "test.rs"
+        rust_src.write_text("pub fn test_function(x: i32) -> i32 { unimplemented!() }")
+
+        ctx = create_test_context(temp_path)
+
+        # Create a Symbol object
+        symbol = Symbol(
+            name="test_function",
+            kind="function",
+            language="c",
+            signature="int test_function(int x)",
+            declaration_file=test_header,
+            declaration_line=1,
+        )
+
+        prompt = generate_unified_prompt(
+            symbol=symbol,
+            ctx=ctx,
+        )
+
+        # Check that Rust source is included with tags
+        assert "<rust_symbol_definition>" in prompt
+        assert "pub fn test_function(x: i32) -> i32 { unimplemented!() }" in prompt
+        assert "</rust_symbol_definition>" in prompt
+
+
+def test_generate_unified_prompt_with_existing_fuzz_test():
+    """Test generate_unified_prompt with existing fuzz test content."""
+    fuzz_content = """#![no_main]
+use libfuzzer_sys::fuzz_target;
+
+fuzz_target!(|data: &[u8]| {
+    // Existing fuzz test
+});"""
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+
+        # Create the directory structure
+        (temp_path / "src" / "zopfli").mkdir(parents=True)
+        (temp_path / "rust" / "fuzz" / "fuzz_targets").mkdir(parents=True)
+
+        # Create test header file with symbol definition
+        test_header = temp_path / "src" / "zopfli" / "test.h"
+        test_header.write_text("int test_function(int x) { return x + 1; }")
+
+        # Create fuzz test file with existing content
+        fuzz_test = temp_path / "rust" / "fuzz" / "fuzz_targets" / "fuzz_test_function.rs"
+        fuzz_test.write_text(fuzz_content)
+
+        ctx = create_test_context(temp_path)
+
+        # Create a Symbol object
+        symbol = Symbol(
+            name="test_function",
+            kind="function",
+            language="c",
+            signature="int test_function(int x)",
+            declaration_file=test_header,
+            declaration_line=1,
+        )
+
+        prompt = generate_unified_prompt(
+            symbol=symbol,
+            ctx=ctx,
+        )
+
+        # Check that fuzz test is included with tags
+        assert "<fuzz_test>" in prompt
+        assert "use libfuzzer_sys::fuzz_target;" in prompt
+        assert "// Existing fuzz test" in prompt
+        assert "</fuzz_test>" in prompt
+
+
+def test_generate_unified_prompt_struct_with_fuzz_content_ignored():
+    """Test that fuzz test content is included for struct types."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+
+        # Create the directory structure
+        (temp_path / "src" / "zopfli").mkdir(parents=True)
+        (temp_path / "rust" / "fuzz" / "fuzz_targets").mkdir(parents=True)
+
+        # Create test header file with struct definition
+        test_header = temp_path / "src" / "zopfli" / "test.h"
+        test_header.write_text("struct TestStruct { int x; int y; };")
+
+        # Create test source file
+        test_source = temp_path / "src" / "zopfli" / "test.c"
+        test_source.write_text("// source file")
+
+        # Create fuzz test file that should be ignored for structs
+        fuzz_test = temp_path / "rust" / "fuzz" / "fuzz_targets" / "fuzz_TestStruct.rs"
+        fuzz_test.write_text("// This should be ignored for structs")
+
+        ctx = create_test_context(temp_path)
+
+        # Create a Symbol object
+        symbol = Symbol(
+            name="TestStruct",
+            kind="struct",
+            language="c",
+            signature="struct TestStruct { int x; int y; };",
+            declaration_file=test_header.relative_to(temp_path),
+            declaration_line=1,
+            definition_file=test_source.relative_to(temp_path),
+            definition_line=1,
+        )
+
+        prompt = generate_unified_prompt(
+            symbol=symbol,
+            ctx=ctx,
+        )
+
+        # Check that fuzz test content is included for structs
+        assert "<fuzz_test>" in prompt
+        assert "This should be ignored for structs" in prompt
+
+
+def test_generate_unified_prompt_typedef_no_fuzz_test():
+    """Test generate_unified_prompt with typedef (no fuzz test)."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+
+        # Create the directory structure
+        (temp_path / "src" / "zopfli").mkdir(parents=True)
+
+        # Create test header file with typedef definition
+        test_header = temp_path / "src" / "zopfli" / "test.h"
+        test_header.write_text("typedef int TestType;")
+
+        # Create test source file
+        test_source = temp_path / "src" / "zopfli" / "test.c"
+        test_source.write_text("// source file")
+
+        ctx = create_test_context(temp_path)
+
+        # Create a Symbol object
+        symbol = Symbol(
+            name="TestType",
+            kind="typedef",
+            language="c",
+            signature="typedef int TestType;",
+            declaration_file=test_header,
+            declaration_line=1,
+            definition_file=test_source,
+            definition_line=1,
+        )
+
+        prompt = generate_unified_prompt(
+            symbol=symbol,
+            ctx=ctx,
+        )
+
+        # Check that fuzz test content is not included when file doesn't exist
+        assert "<fuzz_test>" not in prompt
+
+        # Check C source is still included
+        assert "typedef int TestType;" in prompt
+
+
+def test_generate_unified_prompt_with_processed_symbols():
+    """Test generate_unified_prompt includes processed symbols when they exist."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+
+        # Create the directory structure
+        (temp_path / "src" / "zopfli").mkdir(parents=True)
+
+        # Create test header file with symbol definition
+        test_header = temp_path / "src" / "zopfli" / "test.h"
+        test_header.write_text("int test_function(int x) { return x + 1; }")
+
+        # Create test source file
+        test_source = temp_path / "src" / "zopfli" / "test.c"
+        test_source.write_text("int test_function(int x) { return x + 1; }")
+
+        ctx = create_test_context(temp_path)
+
+        # Add some processed symbols
+        ctx.processed_symbols.add("symbol_a")
+        ctx.processed_symbols.add("symbol_b")
+        ctx.processed_symbols.add("symbol_c")
+
+        # Create a Symbol object
+        symbol = Symbol(
+            name="test_function",
+            kind="function",
+            language="c",
+            signature="int test_function(int x)",
+            declaration_file=test_header,
+            declaration_line=1,
+            definition_file=test_source,
+            definition_line=1,
+        )
+
+        prompt = generate_unified_prompt(
+            symbol=symbol,
+            ctx=ctx,
+        )
+
+        # Check that processed symbols section is included
+        assert "<processed_symbols>" in prompt
+        assert "</processed_symbols>" in prompt
+        assert "The following symbols have already been successfully ported:" in prompt
+        assert "symbol_a, symbol_b, symbol_c" in prompt
+
+
+def test_generate_unified_prompt_empty_processed_symbols():
+    """Test generate_unified_prompt includes processed symbols section even when empty."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+
+        # Create the directory structure
+        (temp_path / "src" / "zopfli").mkdir(parents=True)
+
+        # Create test header file with symbol definition
+        test_header = temp_path / "src" / "zopfli" / "test.h"
+        test_header.write_text("int test_function(int x) { return x + 1; }")
+
+        # Create test source file
+        test_source = temp_path / "src" / "zopfli" / "test.c"
+        test_source.write_text("int test_function(int x) { return x + 1; }")
+
+        ctx = create_test_context(temp_path)
+        # Don't add any processed symbols (empty set)
+
+        # Create a Symbol object
+        symbol = Symbol(
+            name="test_function",
+            kind="function",
+            language="c",
+            signature="int test_function(int x)",
+            declaration_file=test_header,
+            declaration_line=1,
+            definition_file=test_source,
+            definition_line=1,
+        )
+
+        prompt = generate_unified_prompt(
+            symbol=symbol,
+            ctx=ctx,
+        )
+
+        # Check that processed symbols section is included but empty
+        assert "<processed_symbols>" in prompt
+        assert "The following symbols have already been successfully ported:" in prompt
+        assert "symbol_a, symbol_b, symbol_c" not in prompt
+
+
+def test_builder_context_processed_symbols():
+    """Test BuilderContext processed_symbols functionality."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        ctx = create_test_context(temp_path)
+        
+        # Should start empty
+        assert len(ctx.processed_symbols) == 0
+        
+        # Should be able to add symbols
+        ctx.processed_symbols.add("symbol1")
+        ctx.processed_symbols.add("symbol2")
+        assert len(ctx.processed_symbols) == 2
+        assert "symbol1" in ctx.processed_symbols
+        assert "symbol2" in ctx.processed_symbols
+        
+        # Should handle duplicates
+        ctx.processed_symbols.add("symbol1")
+        assert len(ctx.processed_symbols) == 2  # Still 2, no duplicates
 
 
 if __name__ == "__main__":

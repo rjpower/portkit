@@ -2,6 +2,7 @@
 
 import filecmp
 import shutil
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -17,11 +18,32 @@ class SourceCheckpoint(BaseModel):
     )
     saved: bool = False
 
+    def _is_ignored(self, path: Path) -> bool:
+        result = subprocess.run(
+            ["git", "check-ignore", str(path)],
+            cwd=self.source_dir,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return result.returncode == 0
+
     def save(self) -> None:
         """Save current state of source directory."""
-        shutil.copytree(
-            self.source_dir, self.checkpoint_dir, symlinks=True, dirs_exist_ok=True
-        )
+        self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        
+        def walk_unignored(path: Path):
+            if self._is_ignored(path):
+                return
+            if path.is_file():
+                rel_path = path.relative_to(self.source_dir)
+                target_path = self.checkpoint_dir / rel_path
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, target_path)
+            elif path.is_dir():
+                for child in path.iterdir():
+                    walk_unignored(child)
+        
+        walk_unignored(self.source_dir)
         self.saved = True
 
     def restore(self) -> None:
@@ -49,20 +71,19 @@ class SourceCheckpoint(BaseModel):
 
         # Second pass: remove files that don't exist in backup
         if self.source_dir.exists():
-            for target_path in self.source_dir.rglob("*"):
-                if target_path.is_file():
-                    rel_path = target_path.relative_to(self.source_dir)
+            def remove_extra_files(path: Path):
+                if self._is_ignored(path):
+                    return
+                if path.is_file():
+                    rel_path = path.relative_to(self.source_dir)
                     backup_path = self.checkpoint_dir / rel_path
-
                     if not backup_path.exists():
-                        target_path.unlink()
-
-            # Remove empty directories
-            for target_path in sorted(
-                self.source_dir.rglob("*"), key=lambda p: len(p.parts), reverse=True
-            ):
-                if target_path.is_dir() and not any(target_path.iterdir()):
-                    target_path.rmdir()
+                        path.unlink()
+                elif path.is_dir():
+                    for child in path.iterdir():
+                        remove_extra_files(child)
+            
+            remove_extra_files(self.source_dir)
 
     def _files_equal(self, path1: Path, path2: Path) -> bool:
         return filecmp.cmp(path1, path2, shallow=False)
@@ -76,7 +97,7 @@ class SourceCheckpoint(BaseModel):
         self.save()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, _exc_val, _exc_tb):
         if exc_type is not None:
             print(
                 f"Restoring source directory to checkpointed state: {self.checkpoint_dir}"

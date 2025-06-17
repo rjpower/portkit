@@ -1,0 +1,16 @@
+/target/
+debug/
+release/
+
+**/*.rs.bk
+
+*.pdb
+.vscode/
+
+.idea/
+*.iml
+
+.DS_Store
+
+/fuzz/artifacts/
+/fuzz/corpus/

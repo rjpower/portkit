@@ -1,0 +1,451 @@
+[package]
+name = "zopfli-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[profile.dev]
+opt-level = 0
+debug = true
+lto = false
+debug-assertions = true
+overflow-checks = true
+
+[profile.release]
+opt-level = 3
+debug = true
+lto = false
+debug-assertions = true
+overflow-checks = true
+
+[features]
+default = ["cc", "glob"]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+libc = "0.2"
+
+[build-dependencies]
+cc = { version = "1.0", optional = true }
+glob = { version = "0.3", optional = true }
+
+[dependencies.zopfli]
+path = ".."
+features = ["lz77-rust"]
+
+[[bin]]
+name = "fuzz_dummy"
+path = "fuzz_targets/fuzz_dummy.rs"
+test = false
+doc = false
+[[bin]]
+name = "fuzz_ZopfliVerifyLenDist"
+path = "fuzz_targets/fuzz_ZopfliVerifyLenDist.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliGetDistExtraBits"
+path = "fuzz_targets/fuzz_ZopfliGetDistExtraBits.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliGetDistExtraBitsValue"
+path = "fuzz_targets/fuzz_ZopfliGetDistExtraBitsValue.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliGetDistSymbol"
+path = "fuzz_targets/fuzz_ZopfliGetDistSymbol.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliGetLengthExtraBits"
+path = "fuzz_targets/fuzz_ZopfliGetLengthExtraBits.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliGetLengthExtraBitsValue"
+path = "fuzz_targets/fuzz_ZopfliGetLengthExtraBitsValue.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliGetLengthSymbol"
+path = "fuzz_targets/fuzz_ZopfliGetLengthSymbol.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliGetLengthSymbolExtraBits"
+path = "fuzz_targets/fuzz_ZopfliGetLengthSymbolExtraBits.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliGetDistSymbolExtraBits"
+path = "fuzz_targets/fuzz_ZopfliGetDistSymbolExtraBits.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliCalculateBitLengths"
+path = "fuzz_targets/fuzz_ZopfliCalculateBitLengths.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliBlockSplitSimple"
+path = "fuzz_targets/fuzz_ZopfliBlockSplitSimple.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliLengthsToSymbols"
+path = "fuzz_targets/fuzz_ZopfliLengthsToSymbols.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliCalculateEntropy"
+path = "fuzz_targets/fuzz_ZopfliCalculateEntropy.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliLengthLimitedCodeLengths"
+path = "fuzz_targets/fuzz_ZopfliLengthLimitedCodeLengths.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliFormat"
+path = "fuzz_targets/fuzz_ZopfliFormat.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliInitLZ77Store"
+path = "fuzz_targets/fuzz_ZopfliInitLZ77Store.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliCleanLZ77Store"
+path = "fuzz_targets/fuzz_ZopfliCleanLZ77Store.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliLZ77GetByteRange"
+path = "fuzz_targets/fuzz_ZopfliLZ77GetByteRange.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliLZ77GetHistogram"
+path = "fuzz_targets/fuzz_ZopfliLZ77GetHistogram.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliAppendLZ77Store"
+path = "fuzz_targets/fuzz_ZopfliAppendLZ77Store.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliCalculateBlockSize"
+path = "fuzz_targets/fuzz_ZopfliCalculateBlockSize.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliStoreLitLenDist"
+path = "fuzz_targets/fuzz_ZopfliStoreLitLenDist.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliInitCache"
+path = "fuzz_targets/fuzz_ZopfliInitCache.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliCleanCache"
+path = "fuzz_targets/fuzz_ZopfliCleanCache.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliMaxCachedSublen"
+path = "fuzz_targets/fuzz_ZopfliMaxCachedSublen.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliInitOptions"
+path = "fuzz_targets/fuzz_ZopfliInitOptions.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_OptimizeHuffmanForRle"
+path = "fuzz_targets/fuzz_OptimizeHuffmanForRle.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_AddLZ77Data"
+path = "fuzz_targets/fuzz_AddLZ77Data.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_CalculateBlockSymbolSizeSmall"
+path = "fuzz_targets/fuzz_CalculateBlockSymbolSizeSmall.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_AddNonCompressedBlock"
+path = "fuzz_targets/fuzz_AddNonCompressedBlock.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliAllocHash"
+path = "fuzz_targets/fuzz_ZopfliAllocHash.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliResetHash"
+path = "fuzz_targets/fuzz_ZopfliResetHash.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliCleanHash"
+path = "fuzz_targets/fuzz_ZopfliCleanHash.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliUpdateHash"
+path = "fuzz_targets/fuzz_ZopfliUpdateHash.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliCopyLZ77Store"
+path = "fuzz_targets/fuzz_ZopfliCopyLZ77Store.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_CalculateBlockSymbolSizeGivenCounts"
+path = "fuzz_targets/fuzz_CalculateBlockSymbolSizeGivenCounts.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliWarmupHash"
+path = "fuzz_targets/fuzz_ZopfliWarmupHash.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliSublenToCache"
+path = "fuzz_targets/fuzz_ZopfliSublenToCache.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliCacheToSublen"
+path = "fuzz_targets/fuzz_ZopfliCacheToSublen.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_EncodeTree"
+path = "fuzz_targets/fuzz_EncodeTree.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliCleanBlockState"
+path = "fuzz_targets/fuzz_ZopfliCleanBlockState.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_AddDynamicTree"
+path = "fuzz_targets/fuzz_AddDynamicTree.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_TryOptimizeHuffmanForRle"
+path = "fuzz_targets/fuzz_TryOptimizeHuffmanForRle.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_AddLZ77Block"
+path = "fuzz_targets/fuzz_AddLZ77Block.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_AddBits"
+path = "fuzz_targets/fuzz_AddBits.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_AddHuffmanBits"
+path = "fuzz_targets/fuzz_AddHuffmanBits.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_PatchDistanceCodesForBuggyDecoders"
+path = "fuzz_targets/fuzz_PatchDistanceCodesForBuggyDecoders.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliLZ77GetHistogramAt"
+path = "fuzz_targets/fuzz_ZopfliLZ77GetHistogramAt.rs"
+test = false
+doc = false
+[[bin]]
+name = "fuzz_ZopfliInitBlockState"
+path = "fuzz_targets/fuzz_ZopfliInitBlockState.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_CalculateTreeSize"
+path = "fuzz_targets/fuzz_CalculateTreeSize.rs"
+test = false
+doc = false
+
+
+[[bin]]
+name = "fuzz_ZopfliFindLongestMatch"
+path = "fuzz_targets/fuzz_ZopfliFindLongestMatch.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_GetDynamicLengths"
+path = "fuzz_targets/fuzz_GetDynamicLengths.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliLZ77Greedy"
+path = "fuzz_targets/fuzz_ZopfliLZ77Greedy.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliLZ77OptimalFixed"
+path = "fuzz_targets/fuzz_ZopfliLZ77OptimalFixed.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_CalculateBlockSymbolSize"
+path = "fuzz_targets/fuzz_CalculateBlockSymbolSize.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliCalculateBlockSizeAutoType"
+path = "fuzz_targets/fuzz_ZopfliCalculateBlockSizeAutoType.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliLZ77Optimal"
+path = "fuzz_targets/fuzz_ZopfliLZ77Optimal.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_AddLZ77BlockAutoType"
+path = "fuzz_targets/fuzz_AddLZ77BlockAutoType.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_AddBit"
+path = "fuzz_targets/fuzz_AddBit.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_GetFixedTree"
+path = "fuzz_targets/fuzz_GetFixedTree.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_AbsDiff"
+path = "fuzz_targets/fuzz_AbsDiff.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliBlockSplit"
+path = "fuzz_targets/fuzz_ZopfliBlockSplit.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliBlockSplitLZ77"
+path = "fuzz_targets/fuzz_ZopfliBlockSplitLZ77.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliDeflate"
+path = "fuzz_targets/fuzz_ZopfliDeflate.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliDeflatePart"
+path = "fuzz_targets/fuzz_ZopfliDeflatePart.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliZlibCompress"
+path = "fuzz_targets/fuzz_ZopfliZlibCompress.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliGzipCompress"
+path = "fuzz_targets/fuzz_ZopfliGzipCompress.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliCompress"
+path = "fuzz_targets/fuzz_ZopfliCompress.rs"
+test = false
+doc = false

@@ -1,0 +1,142 @@
+rust/src/deflate.rs
+<<<<<<< SEARCH
+    debug_assert!(expected_data_size == 0 || testlength == expected_data_size);
+}
+=======
+    assert!(expected_data_size == 0 || testlength == expected_data_size);
+}
+>>>>>>> REPLACE
+rust/fuzz/fuzz_targets/fuzz_AddLZ77Data.rs
+<<<<<<< SEARCH
+#[derive(Debug, arbitrary::Arbitrary)]
+struct FuzzInput {
+    litlens: Vec<u16>,
+    dists: Vec<u16>,
+    expected_data_size: usize,
+    ll_symbols: Vec<c_uint>,
+=======
+#[derive(Debug, arbitrary::Arbitrary)]
+struct FuzzInput {
+    litlens: Vec<u16>,
+    dists: Vec<u16>,
+    ll_symbols: Vec<c_uint>,
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    let mut input = input;
+    let size = input.litlens.len();
+=======
+    let mut input = input;
+    let size = input.litlens.len();
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if size == 0 || input.dists.len() != size {
+        return;
+    }
+    let mut litlens = input.litlens;
+    let mut dists = input.dists;
+    input.ll_symbols.resize(ZOPFLI_NUM_LL, 0);
+=======
+    if size == 0 || input.dists.len() != size {
+        return;
+    }
+    let mut litlens = input.litlens;
+    let mut dists = input.dists;
+    input.ll_symbols.resize(ZOPFLI_NUM_LL, 0);
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    input.ll_lengths.resize(ZOPFLI_NUM_LL, 0);
+    input.d_symbols.resize(ZOPFLI_NUM_D, 0);
+    input.d_lengths.resize(ZOPFLI_NUM_D, 0);
+
+    for i in 0..size {
+        if dists[i] == 0 {
+            let litlen = litlens[i] as usize;
+            if litlen >= 256 {
+                return;
+            }
+            // Ensure length is > 0 so assert(ll_lengths[litlen] > 0) doesn't fire
+            if input.ll_lengths[litlen] == 0 {
+                input.ll_lengths[litlen] = 1;
+            }
+        } else {
+            let litlen = litlens[i] as i32;
+            if !(3..=288).contains(&litlen) {
+                return;
+            }
+            let dist = dists[i] as i32;
+            if !(1..=32768).contains(&dist) {
+                return;
+            }
+
+            let lls = unsafe { ffi::ZopfliGetLengthSymbol(litlen) as usize };
+            let ds = unsafe { ffi::ZopfliGetDistSymbol(dist) as usize };
+            if lls >= ZOPFLI_NUM_LL || ds >= ZOPFLI_NUM_D {
+                return;
+            }
+            // Ensure lengths are > 0 so asserts don't fire
+            if input.ll_lengths[lls] == 0 {
+                input.ll_lengths[lls] = 1;
+            }
+            if input.d_lengths[ds] == 0 {
+                input.d_lengths[ds] = 1;
+            }
+        }
+    }
+=======
+    input.ll_lengths.resize(ZOPFLI_NUM_LL, 0);
+    input.d_symbols.resize(ZOPFLI_NUM_D, 0);
+    input.d_lengths.resize(ZOPFLI_NUM_D, 0);
+
+    let mut expected_data_size = 0;
+    for i in 0..size {
+        if dists[i] == 0 {
+            let litlen = litlens[i] as usize;
+            if litlen >= 256 {
+                return;
+            }
+            // Ensure length is > 0 so assert(ll_lengths[litlen] > 0) doesn't fire
+            if input.ll_lengths[litlen] == 0 {
+                input.ll_lengths[litlen] = 1;
+            }
+            expected_data_size += 1;
+        } else {
+            let litlen = litlens[i] as i32;
+            if !(3..=288).contains(&litlen) {
+                return;
+            }
+            let dist = dists[i] as i32;
+            if !(1..=32768).contains(&dist) {
+                return;
+            }
+
+            let lls = unsafe { ffi::ZopfliGetLengthSymbol(litlen) as usize };
+            let ds = unsafe { ffi::ZopfliGetDistSymbol(dist) as usize };
+            if lls >= ZOPFLI_NUM_LL || ds >= ZOPFLI_NUM_D {
+                return;
+            }
+            // Ensure lengths are > 0 so asserts don't fire
+            if input.ll_lengths[lls] == 0 {
+                input.ll_lengths[lls] = 1;
+            }
+            if input.d_lengths[ds] == 0 {
+                input.d_lengths[ds] = 1;
+            }
+            expected_data_size += litlen as usize;
+        }
+    }
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        zopfli::deflate::AddLZ77Data(
+            &lz77,
+            0,
+            size,
+            input.expected_data_size,
+            input.ll_symbols.as_ptr(),
+=======
+        zopfli::deflate::AddLZ77Data(
+            &lz77,
+            0,
+            size,
+            expected_data_size,
+            input.ll_symbols.as_ptr(),
+>>>>>>> REPLACE

@@ -46,7 +46,25 @@ test = false
 doc = false
 
 [[bin]]
+name = "fuzz_ZopfliGetDistSymbol"
+path = "fuzz_targets/fuzz_ZopfliGetDistSymbol.rs"
+test = false
+doc = false
+
+[[bin]]
 name = "fuzz_ZopfliGetLengthExtraBits"
 path = "fuzz_targets/fuzz_ZopfliGetLengthExtraBits.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliGetLengthExtraBitsValue"
+path = "fuzz_targets/fuzz_ZopfliGetLengthExtraBitsValue.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_ZopfliLZ77GetHistogramAt"
+path = "fuzz_targets/fuzz_ZopfliLZ77GetHistogramAt.rs"
 test = false
 doc = false

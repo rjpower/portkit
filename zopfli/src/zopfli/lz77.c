@@ -47,9 +47,7 @@ void ZopfliCleanLZ77Store(ZopfliLZ77Store* store) {
   free(store->d_counts);
 }
 
-static size_t CeilDiv(size_t a, size_t b) {
-  return (a + b - 1) / b;
-}
+size_t CeilDiv(size_t a, size_t b) { return (a + b - 1) / b; }
 
 void ZopfliCopyLZ77Store(
     const ZopfliLZ77Store* source, ZopfliLZ77Store* dest) {
@@ -165,8 +163,8 @@ size_t ZopfliLZ77GetByteRange(const ZopfliLZ77Store* lz77,
       1 : lz77->litlens[l]) - lz77->pos[lstart];
 }
 
-static void ZopfliLZ77GetHistogramAt(const ZopfliLZ77Store* lz77, size_t lpos,
-                                     size_t* ll_counts, size_t* d_counts) {
+void ZopfliLZ77GetHistogramAt(const ZopfliLZ77Store* lz77, size_t lpos,
+                              size_t* ll_counts, size_t* d_counts) {
   /* The real histogram is created by using the histogram for this chunk, but
   all superfluous values of this chunk subtracted. */
   size_t llpos = ZOPFLI_NUM_LL * (lpos / ZOPFLI_NUM_LL);
@@ -262,7 +260,7 @@ Indirectly, this affects:
 -the first zopfli run, so it affects the chance of the first run being closer
  to the optimal output
 */
-static int GetLengthScore(int length, int distance) {
+int GetLengthScore(int length, int distance) {
   /*
   At 1024, the distance uses 9+ extra bits and this seems to be the sweet spot
   on tested files.
@@ -294,11 +292,10 @@ match is the earlier position to compare.
 end is the last possible byte, beyond which to stop looking.
 safe_end is a few (8) bytes before end, for comparing multiple bytes at once.
 */
-static const unsigned char* GetMatch(const unsigned char* scan,
-                                     const unsigned char* match,
-                                     const unsigned char* end,
-                                     const unsigned char* safe_end) {
-
+const unsigned char* GetMatch(const unsigned char* scan,
+                              const unsigned char* match,
+                              const unsigned char* end,
+                              const unsigned char* safe_end) {
   if (sizeof(size_t) == 8) {
     /* 8 checks at once per array bounds check (size_t is 64-bit). */
     while (scan < safe_end && *((size_t*)scan) == *((size_t*)match)) {
@@ -337,9 +334,10 @@ Returns 1 if it got the values from the cache, 0 if not.
 Updates the limit value to a smaller one if possible with more limited
 information from the cache.
 */
-static int TryGetFromLongestMatchCache(ZopfliBlockState* s,
-    size_t pos, size_t* limit,
-    unsigned short* sublen, unsigned short* distance, unsigned short* length) {
+int TryGetFromLongestMatchCache(ZopfliBlockState* s, size_t pos, size_t* limit,
+                                unsigned short* sublen,
+                                unsigned short* distance,
+                                unsigned short* length) {
   /* The LMC cache starts at the beginning of the block rather than the
      beginning of the whole array. */
   size_t lmcpos = pos - s->blockstart;
@@ -381,10 +379,9 @@ static int TryGetFromLongestMatchCache(ZopfliBlockState* s,
 Stores the found sublen, distance and length in the longest match cache, if
 possible.
 */
-static void StoreInLongestMatchCache(ZopfliBlockState* s,
-    size_t pos, size_t limit,
-    const unsigned short* sublen,
-    unsigned short distance, unsigned short length) {
+void StoreInLongestMatchCache(ZopfliBlockState* s, size_t pos, size_t limit,
+                              const unsigned short* sublen,
+                              unsigned short distance, unsigned short length) {
   /* The LMC cache starts at the beginning of the block rather than the
      beginning of the whole array. */
   size_t lmcpos = pos - s->blockstart;
