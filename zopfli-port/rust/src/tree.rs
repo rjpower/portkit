@@ -82,9 +82,9 @@ pub fn ZopfliCalculateEntropy(count: *const size_t, n: size_t, bitlengths: *mut 
     }
 
     let log2sum = (if sum == 0 {
-        unsafe { log(n as f64) }
+        (n as f64).ln()
     } else {
-        unsafe { log(f64::from(sum)) }
+        f64::from(sum).ln()
     }) * K_INV_LOG2;
 
     for i in 0..n {

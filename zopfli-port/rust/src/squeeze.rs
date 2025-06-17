@@ -96,10 +96,8 @@ fn randomize_stat_freqs(state: &mut RanState, stats: &mut SymbolStats) {
 }
 
 fn calculate_statistics(stats: &mut SymbolStats) {
-    unsafe {
-        ZopfliCalculateEntropy(stats.litlens.as_ptr(), ZOPFLI_NUM_LL, stats.ll_symbols.as_mut_ptr());
-        ZopfliCalculateEntropy(stats.dists.as_ptr(), ZOPFLI_NUM_D, stats.d_symbols.as_mut_ptr());
-    }
+    ZopfliCalculateEntropy(stats.litlens.as_ptr(), ZOPFLI_NUM_LL, stats.ll_symbols.as_mut_ptr());
+    ZopfliCalculateEntropy(stats.dists.as_ptr(), ZOPFLI_NUM_D, stats.d_symbols.as_mut_ptr());
 }
 
 unsafe fn get_statistics(store: *const ZopfliLZ77Store, stats: &mut SymbolStats) {
@@ -396,14 +394,10 @@ pub unsafe fn ZopfliLZ77Optimal(
     numiterations: c_int,
     store: *mut ZopfliLZ77Store,
 ) {
-    let blocksize = inend - instart;
-    let mut length_array = vec![0u16; blocksize + 1];
-    let mut path: Vec<c_ushort> = Vec::new();
-    let mut currentstore: ZopfliLZ77Store = std::mem::zeroed();
     if inend - instart == 0 {
         return;
     }
-    let blocksize = (inend - instart) as usize;
+    let blocksize = inend - instart;
     let mut length_array = vec![0u16; blocksize + 1];
     let mut path: Vec<c_ushort> = vec![0; blocksize + 1];
     let mut currentstore: ZopfliLZ77Store = std::mem::zeroed();
