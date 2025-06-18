@@ -71,7 +71,7 @@ class BuilderContext(BaseModel):
         config = ProjectConfig.find_project_config(project_root)
         if not config:
             raise ValueError(f"No portkit_config.json found in {project_root} or its parent directories")
-        
+
         source_map = SourceMap(project_root, config)
         return cls(
             project_root=project_root,
@@ -82,21 +82,21 @@ class BuilderContext(BaseModel):
 
     @property
     def rust_ffi_path(self) -> Path:
-        return self.config.rust_ffi_path(self.project_root)
+        return self.config.rust_ffi_path()
 
     @property
     def rust_src_root(self) -> Path:
-        return self.config.rust_src_path(self.project_root)
+        return self.config.rust_src_path()
 
     def rust_src_for_symbol(self, symbol: Symbol) -> Path:
-        return self.config.rust_src_path_for_symbol(self.project_root, symbol.source_path)
+        return self.config.rust_src_path_for_symbol(symbol.source_path)
 
     def rust_fuzz_for_symbol(self, symbol: Symbol) -> Path:
-        return self.config.rust_fuzz_path_for_symbol(self.project_root, symbol.name)
+        return self.config.rust_fuzz_path_for_symbol(symbol.name)
 
     @property
     def c_source_path(self) -> Path:
-        return self.config.c_source_path(self.project_root)
+        return self.config.c_source_path()
 
 
 def has_implementation(symbol_kind: str) -> bool:
@@ -185,7 +185,7 @@ def is_symbol_ported(symbol: Symbol, ctx: BuilderContext, initial: bool = True) 
             except Exception as e:
                 result.error(f"Fuzz test failed: {str(e)}")
 
-        compile_rust_project(ctx.config.rust_root_path(ctx.project_root), ctx=ctx)
+        compile_rust_project(ctx.config.rust_root_path(), ctx=ctx)
 
     return result
 
@@ -354,9 +354,7 @@ Repository structure and key symbols:
             messages, completion_fn, ctx.project_root, ctx=ctx
         )
     elif ctx.editor_type == EditorType.CLAUDE:
-        await port_symbol_claude(
-            symbol, project_root=ctx.project_root, source_map=ctx.source_map, config=ctx.config
-        )
+        await port_symbol_claude(symbol, source_map=ctx.source_map, config=ctx.config)
         return completion_fn(False)
     else:
         return await call_with_retry(messages, completion_fn, ctx=ctx)
@@ -383,10 +381,10 @@ async def port_symbol(symbol: Symbol, *, ctx: BuilderContext) -> None:
     if status.is_done():
         ctx.console.print(f"[green]Symbol {symbol.name} already ported[/green]")
         return
-    
+
     ctx.console.print(f"[bold blue]Processing {symbol}[/bold blue]")
     # save a checkpoint and restore if compilation fails after the LLM is done.
-    checkpoint = SourceCheckpoint(source_dir=ctx.config.rust_root_path(ctx.project_root))
+    checkpoint = SourceCheckpoint(source_dir=ctx.config.rust_root_path())
     checkpoint.save()
     try:
         await generate_implementation(
@@ -395,7 +393,7 @@ async def port_symbol(symbol: Symbol, *, ctx: BuilderContext) -> None:
         )
     finally:
         try:
-            compile_rust_project(ctx.config.rust_root_path(ctx.project_root), ctx=ctx)
+            compile_rust_project(ctx.config.rust_root_path(), ctx=ctx)
         except Exception:
             ctx.console.print("[red]Compilation failed, restoring checkpoint[/red]")
             checkpoint.restore()
@@ -471,7 +469,7 @@ async def main_litellm():
     ctx.interrupt_handler.setup()
 
     try:
-        compile_rust_project(ctx.config.rust_root_path(ctx.project_root), ctx=ctx)
+        compile_rust_project(ctx.config.rust_root_path(), ctx=ctx)
         results = await run_traversal_pipeline(ctx=ctx)
         if results["failed"] > 0:
             ctx.console.print(
@@ -488,7 +486,6 @@ async def main_litellm():
 
 async def main_with_editor(editor_type: EditorType):
     """Main function that runs with specified editor type."""
-    project_root = Path.cwd()
     ctx = BuilderContext.from_project_root(project_root, editor_type)
 
     ctx.console.print(f"[bold green]Using editor: {editor_type.value}[/bold green]")
@@ -497,7 +494,7 @@ async def main_with_editor(editor_type: EditorType):
     ctx.interrupt_handler.setup()
 
     try:
-        compile_rust_project(ctx.config.rust_root_path(ctx.project_root), ctx=ctx)
+        compile_rust_project(ctx.config.rust_root_path(), ctx=ctx)
         results = await run_traversal_pipeline(ctx=ctx)
 
         if results["failed"] > 0:
@@ -518,40 +515,6 @@ def cli():
     """PortKit: AI-powered C to Rust porting toolkit."""
     pass
 
-@cli.command()
-@click.argument('project_name')
-@click.option('--library-name', help='Rust library name (defaults to project_name)')
-@click.option('--c-source-dir', default='src', help='C source directory')
-@click.option('--c-source-subdir', help='C source subdirectory')
-def setup(project_name: str, library_name: str = None, c_source_dir: str = "src", c_source_subdir: str = None):
-    """Set up Rust project structure for a new C library port."""
-    from .config import ProjectConfig
-    from .setup_rust import setup_project
-    
-    project_root = Path.cwd() / project_name
-    config = ProjectConfig(
-        project_name=project_name,
-        library_name=library_name or project_name,
-        c_source_dir=c_source_dir,
-        c_source_subdir=c_source_subdir
-    )
-    setup_project(project_root, config)
-    
-    click.echo(f"✅ Created Rust project structure for {project_name}")
-    click.echo(f"📁 Project root: {project_root}")
-    click.echo(f"⚙️  Configuration saved to: {project_root}/portkit_config.json")
-
-@cli.command()
-@click.option(
-    "--editor",
-    type=click.Choice([e.value for e in EditorType], case_sensitive=False),
-    default=EditorType.LITELLM.value,
-    help="Editor type to use for code generation",
-)
-def port(editor: str):
-    """Port C library to Rust using AI models."""
-    editor_type = EditorType(editor.lower())
-    asyncio.run(main_with_editor(editor_type))
 
 @click.command()
 @click.option(
@@ -560,15 +523,18 @@ def port(editor: str):
     default=EditorType.LITELLM.value,
     help="Editor type to use for code generation",
 )
-def main(editor: str):
+@click.argument(
+    "project_root", type=click.Path(exists=True, file_okay=False, dir_okay=True)
+)
+def main(editor: str, project_root: Path):
     """Port C code to Rust using AI-powered code generation."""
+    if not project_root.exists():
+        raise click.ClickException(
+            f"Project root {project_root} does not exist, use scripts/setup_rust_project.py to create it"
+        )
     editor_type = EditorType(editor.lower())
-    asyncio.run(main_with_editor(editor_type))
+    asyncio.run(main_with_editor(editor_type, project_root))
 
 
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) > 1 and sys.argv[1] in ['setup', 'port']:
-        cli()
-    else:
-        main()
+    main()

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import json
 from pathlib import Path
 from typing import Optional
 
@@ -12,10 +13,10 @@ class ProjectConfig(BaseModel):
     # Project identification
     project_name: str
     library_name: str  # for cargo package names
+    project_root: Path
     
     # Directory structure  
     c_source_dir: str = "src"  # relative to project root
-    c_source_subdir: str | None = None  # e.g., "zopfli" for zopfli/src/zopfli
     rust_dir: str = "rust"
     rust_src_dir: str = "src" 
     fuzz_dir: str = "fuzz"
@@ -41,52 +42,54 @@ class ProjectConfig(BaseModel):
     license: str = "Apache-2.0"
     repository: str | None = None
 
-    def c_source_path(self, project_root: Path) -> Path:
+    def c_source_path(self) -> Path:
         """Get the full path to C source directory."""
-        path = project_root / self.c_source_dir
-        if self.c_source_subdir:
-            path = path / self.c_source_subdir
-        return path
+        return self.project_root / self.c_source_dir
 
-    def rust_root_path(self, project_root: Path) -> Path:
+    def rust_root_path(self) -> Path:
         """Get the full path to Rust project root."""
-        return project_root / self.rust_dir
+        return self.project_root / self.rust_dir
 
-    def rust_src_path(self, project_root: Path) -> Path:
+    def rust_src_path(self) -> Path:
         """Get the full path to Rust source directory."""
-        return project_root / self.rust_dir / self.rust_src_dir
+        return self.rust_root_path() / self.rust_src_dir
 
-    def rust_ffi_path(self, project_root: Path) -> Path:
+    def rust_ffi_path(self) -> Path:
         """Get the full path to FFI bindings file."""
-        return self.rust_src_path(project_root) / "ffi.rs"
+        return self.rust_src_path() / "ffi.rs"
 
-    def rust_fuzz_root_path(self, project_root: Path) -> Path:
+    def rust_fuzz_root_path(self) -> Path:
         """Get the full path to fuzz test root directory."""
-        return project_root / self.rust_dir / self.fuzz_dir
+        return self.rust_root_path() / self.fuzz_dir
 
-    def rust_fuzz_targets_path(self, project_root: Path) -> Path:
+    def rust_fuzz_targets_path(self) -> Path:
         """Get the full path to fuzz targets directory."""
-        return self.rust_fuzz_root_path(project_root) / self.fuzz_targets_dir
+        return self.rust_fuzz_root_path() / self.fuzz_targets_dir
 
-    def rust_fuzz_path_for_symbol(self, project_root: Path, symbol_name: str) -> Path:
+    def rust_fuzz_path_for_symbol(self, symbol_name: str) -> Path:
         """Get the full path to fuzz test for a specific symbol."""
-        return self.rust_fuzz_targets_path(project_root) / f"fuzz_{symbol_name}.rs"
+        return self.rust_fuzz_targets_path() / f"fuzz_{symbol_name}.rs"
 
-    def rust_src_path_for_symbol(self, project_root: Path, source_file: Path | None) -> Path:
+    def rust_src_path_for_symbol(self, source_file: Path | None) -> Path:
         """Get the Rust source path for a symbol based on its original C source file."""
         if source_file:
-            return self.rust_src_path(project_root) / f"{source_file.stem}.rs"
+            return self.rust_src_path() / f"{source_file.stem}.rs"
         else:
-            return self.rust_src_path(project_root) / "lib.rs"
+            return self.rust_src_path() / "lib.rs"
 
     @classmethod
     def load_from_file(cls, config_path: Path) -> "ProjectConfig":
         """Load configuration from a JSON file."""
-        return cls.model_validate_json(config_path.read_text())
+        data = cls.model_validate_json(config_path.read_text())
+        # Set project_root to the directory containing the config file
+        data.project_root = config_path.parent
+        return data
 
     def save_to_file(self, config_path: Path) -> None:
         """Save configuration to a JSON file."""
-        config_path.write_text(self.model_dump_json(indent=2))
+        # Don't save project_root to the file since it's derived from the file location
+        data = self.model_dump(exclude={"project_root"})
+        config_path.write_text(json.dumps(data, indent=2))
 
     @classmethod
     def find_project_config(cls, start_path: Path) -> Optional["ProjectConfig"]:

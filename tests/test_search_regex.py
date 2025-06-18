@@ -46,7 +46,7 @@ int SomeOtherFunction() {
 """)
 
         # Create BuilderContext
-        config = ProjectConfig(project_name="test", library_name="test")
+        config = ProjectConfig(project_name="test", library_name="test", project_root=tmpdir_path)
         ctx = BuilderContext(
             project_root=tmpdir_path,
             config=config,
@@ -98,7 +98,7 @@ pub fn simple_function() -> i32 {
 """)
 
         # Create BuilderContext
-        config = ProjectConfig(project_name="test", library_name="test")
+        config = ProjectConfig(project_name="test", library_name="test", project_root=tmpdir_path)
         ctx = BuilderContext(
             project_root=tmpdir_path,
             config=config,
@@ -141,7 +141,7 @@ pub fn other_function() -> i32 { 0 }
 """)
 
         # Create BuilderContext
-        config = ProjectConfig(project_name="test", library_name="test")
+        config = ProjectConfig(project_name="test", library_name="test", project_root=tmpdir_path)
         ctx = BuilderContext(
             project_root=tmpdir_path,
             config=config,

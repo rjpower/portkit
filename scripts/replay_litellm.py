@@ -57,7 +57,7 @@ async def replay_completion(log_data: dict[str, Any]) -> None:
 
         else:
             # Handle non-streaming response
-            message = response.choices[0].message
+            message = response.choices[0].message  # type: ignore
             if hasattr(message, 'content') and message.content:
                 print(message.content)
             if hasattr(message, 'tool_calls') and message.tool_calls:

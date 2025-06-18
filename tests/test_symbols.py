@@ -31,7 +31,7 @@ def temp_project():
 
 
 def create_ctx(temp_project):
-    config = ProjectConfig(project_name="test", library_name="test")
+    config = ProjectConfig(project_name="test", library_name="test", project_root=temp_project)
     return BuilderContext(
         project_root=temp_project,
         config=config,
@@ -60,7 +60,7 @@ int ZopfliVerifyLenDist(const unsigned char* data, size_t datasize,
 """)
     
     # Create SourceMap (parsing happens at init)
-    config = ProjectConfig(project_name="test", library_name="test")
+    config = ProjectConfig(project_name="test", library_name="test", project_root=temp_project)
     source_map = SourceMap(temp_project, config)
     symbols = source_map.parse_project()
     
@@ -95,7 +95,7 @@ void init_cache(struct ZopfliLongestMatchCache* cache);
 """)
 
     # Create SourceMap (parsing happens at init)
-    config = ProjectConfig(project_name="test", library_name="test")
+    config = ProjectConfig(project_name="test", library_name="test", project_root=temp_project)
     source_map = SourceMap(temp_project, config)
     symbols = source_map.parse_project()
 
@@ -127,7 +127,7 @@ int TestFunction(int x, int y) {
 """)
 
     # Create SourceMap (parsing happens at init)
-    config = ProjectConfig(project_name="test", library_name="test")
+    config = ProjectConfig(project_name="test", library_name="test", project_root=temp_project)
     source_map = SourceMap(temp_project, config)
     source_map.parse_project()
 
@@ -156,7 +156,7 @@ extern "C" {
 """)
 
     # Create SourceMap (parsing happens at init)
-    config = ProjectConfig(project_name="test", library_name="test")
+    config = ProjectConfig(project_name="test", library_name="test", project_root=temp_project)
     source_map = SourceMap(temp_project, config)
     source_map.parse_project()
 
@@ -177,7 +177,7 @@ pub fn test_function(x: i32, y: i32) -> i32 {
 """)
 
     # Create SourceMap (parsing happens at init)
-    config = ProjectConfig(project_name="test", library_name="test")
+    config = ProjectConfig(project_name="test", library_name="test", project_root=temp_project)
     source_map = SourceMap(temp_project, config)
     source_map.parse_project()
 
@@ -204,7 +204,7 @@ fuzz_target!(|data: &[u8]| {
 });
 """)
     
-    config = ProjectConfig(project_name="test", library_name="test")
+    config = ProjectConfig(project_name="test", library_name="test", project_root=temp_project)
     source_map = SourceMap(temp_project, config)
     assert source_map.is_fuzz_test_defined(fuzz_file, "TestFunction")
     assert not source_map.is_fuzz_test_defined(fuzz_file, "NonExistentFunction")
@@ -245,7 +245,7 @@ pub fn rust_function() {
 """)
     
     # Create SourceMap (parsing happens at init)
-    config = ProjectConfig(project_name="test", library_name="test")
+    config = ProjectConfig(project_name="test", library_name="test", project_root=temp_project)
     source_map = SourceMap(temp_project, config)
     symbols = source_map.parse_project()
     
@@ -332,7 +332,7 @@ int main() {
 """)
     
     # Test that we can create and parse a SourceMap
-    config = ProjectConfig(project_name="test", library_name="test")
+    config = ProjectConfig(project_name="test", library_name="test", project_root=temp_project)
     source_map = SourceMap(temp_project, config)
     symbols = source_map.parse_project()
     

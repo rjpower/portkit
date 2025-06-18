@@ -11,7 +11,9 @@ from portkit.sourcemap import SourceMap
 
 
 def create_builder_ctx(project_root: Path) -> BuilderContext:
-    config = ProjectConfig(project_name="debug", library_name="debug")
+    config = ProjectConfig(
+        project_name="debug", library_name="debug", project_root=project_root
+    )
     ctx = BuilderContext(
         project_root=project_root,
         config=config,

@@ -1182,14 +1182,14 @@ class SourceMap:
 
         # Check for FFI binding manually if not found in symbols
         if not info.ffi_path:
-            ffi_path = self.config.rust_ffi_path(self.project_root)
+            ffi_path = self.config.rust_ffi_path()
             if ffi_path.exists() and self.find_ffi_binding_definition(
                 ffi_path, symbol_name
             ):
                 info.ffi_path = str(ffi_path.relative_to(self.project_root))
 
         # Check for fuzz test
-        fuzz_path = self.config.rust_fuzz_path_for_symbol(self.project_root, symbol_name)
+        fuzz_path = self.config.rust_fuzz_path_for_symbol(symbol_name)
         if fuzz_path.exists():
             info.rust_fuzz_path = str(fuzz_path.relative_to(self.project_root))
 

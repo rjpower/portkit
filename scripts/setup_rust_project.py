@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
+"""Configures a Rust project for a C library."""
+
 from pathlib import Path
 
 import click
 
-from .config import ProjectConfig
+from ..portkit.config import ProjectConfig
 
 
 def format_dependencies(deps: dict[str, str]) -> str:
@@ -12,7 +14,7 @@ def format_dependencies(deps: dict[str, str]) -> str:
     lines = []
     for name, version in deps.items():
         if "optional" in version or "{" in version:
-            lines.append(f'{name} = {version}')
+            lines.append(f"{name} = {version}")
         else:
             lines.append(f'{name} = "{version}"')
     return "\n".join(lines)
@@ -30,10 +32,12 @@ def generate_rerun_directives(c_source_path: str, c_files: list[str]) -> str:
     """Generate cargo:rerun-if-changed directives for C files."""
     if not c_files:
         return ""
-    
+
     lines = []
     for c_file in c_files:
-        lines.append(f'    println!("cargo:rerun-if-changed={c_source_path}/{c_file}");')
+        lines.append(
+            f'    println!("cargo:rerun-if-changed={c_source_path}/{c_file}");'
+        )
     return "\n".join(lines)
 
 
@@ -41,7 +45,7 @@ def generate_compile_flags(flags: list[str]) -> str:
     """Generate compile flags for build.rs."""
     if not flags:
         return ""
-    
+
     lines = []
     for flag in flags:
         lines.append(f'        .flag("{flag}")')
@@ -52,7 +56,7 @@ def generate_file_directives(c_source_path: str, c_files: list[str]) -> str:
     """Generate .file() directives for build.rs."""
     if not c_files:
         return ""
-    
+
     lines = []
     for c_file in c_files:
         lines.append(f'        .file("{c_source_path}/{c_file}")')
@@ -63,7 +67,7 @@ def generate_include_directives(c_source_path: str, include_dirs: list[str]) -> 
     """Generate .include() directives for build.rs."""
     if not include_dirs:
         return f'        .include("{c_source_path}")'
-    
+
     lines = [f'        .include("{c_source_path}")']
     for include_dir in include_dirs:
         if include_dir != ".":  # Don't duplicate the main source path
@@ -73,10 +77,10 @@ def generate_include_directives(c_source_path: str, include_dirs: list[str]) -> 
 
 def create_main_cargo_toml(rust_root: Path, config: ProjectConfig) -> None:
     """Generate main Cargo.toml file."""
-    
-    authors_str = str(config.authors) if config.authors else '[]'
+
+    authors_str = str(config.authors) if config.authors else "[]"
     repo_line = f'repository = "{config.repository}"' if config.repository else ""
-    
+
     cargo_toml = f"""[package]
 name = "{config.library_name}"
 version = "0.1.0"
@@ -111,13 +115,13 @@ codegen-units = 1
 inherits = "release"
 debug = true
 """
-    
+
     (rust_root / "Cargo.toml").write_text(cargo_toml)
 
 
 def create_fuzz_cargo_toml(fuzz_root: Path, config: ProjectConfig) -> None:
     """Generate fuzz Cargo.toml file."""
-    
+
     fuzz_cargo_toml = f"""[package]
 name = "{config.library_name}-fuzz"
 version = "0.0.0"
@@ -147,22 +151,20 @@ path = "fuzz_targets/fuzz_dummy.rs"
 test = false
 doc = false
 """
-    
+
     (fuzz_root / "Cargo.toml").write_text(fuzz_cargo_toml)
 
 
 def create_build_rs(rust_root: Path, config: ProjectConfig) -> None:
     """Generate build.rs file."""
-    
+
     c_source_path = f"../{config.c_source_dir}"
-    if config.c_source_subdir:
-        c_source_path += f"/{config.c_source_subdir}"
-    
+
     rerun_directives = generate_rerun_directives(c_source_path, config.c_files)
     compile_flags = generate_compile_flags(config.compile_flags)
     file_directives = generate_file_directives(c_source_path, config.c_files)
     include_directives = generate_include_directives(c_source_path, config.include_dirs)
-    
+
     build_rs = f"""fn main() {{
     use cc::Build;
     use std::path::Path;
@@ -177,13 +179,13 @@ def create_build_rs(rust_root: Path, config: ProjectConfig) -> None:
 {include_directives}
         .compile("{config.library_name}_c");
 }}"""
-    
+
     (rust_root / "build.rs").write_text(build_rs)
 
 
 def create_lib_rs(rust_src: Path, config: ProjectConfig) -> None:
     """Generate lib.rs file."""
-    
+
     lib_rs = """#![allow(non_snake_case)]
 #![allow(dead_code)]
 #![allow(unused_variables)]
@@ -194,16 +196,16 @@ pub mod ffi;
 // Re-export main functionality
 pub use ffi::*;
 """
-    
+
     (rust_src / "lib.rs").write_text(lib_rs)
-    
+
     # Create empty ffi.rs
     (rust_src / "ffi.rs").write_text("// FFI bindings will be generated here\n")
 
 
 def create_dummy_fuzz_test(fuzz_targets: Path, config: ProjectConfig) -> None:
     """Generate dummy fuzz test."""
-    
+
     dummy_fuzz = """#![no_main]
 use libfuzzer_sys::fuzz_target;
 
@@ -214,70 +216,69 @@ fuzz_target!(|data: &[u8]| {
     }
 });
 """
-    
+
     (fuzz_targets / "fuzz_dummy.rs").write_text(dummy_fuzz)
 
 
 def setup_project(project_root: Path, config: ProjectConfig) -> None:
     """Create the Rust project structure based on config."""
-    
-    rust_root = config.rust_root_path(project_root)
-    rust_src = config.rust_src_path(project_root)  
-    fuzz_root = config.rust_fuzz_root_path(project_root)
-    fuzz_targets = config.rust_fuzz_targets_path(project_root)
-    
+
+    rust_root = config.rust_root_path()
+    rust_src = config.rust_src_path()
+    fuzz_root = config.rust_fuzz_root_path()
+    fuzz_targets = config.rust_fuzz_targets_path()
+
     # Create directories
     rust_src.mkdir(parents=True, exist_ok=True)
     fuzz_targets.mkdir(parents=True, exist_ok=True)
-    
+
     # Generate main Cargo.toml
     create_main_cargo_toml(rust_root, config)
-    
-    # Generate fuzz Cargo.toml  
+
+    # Generate fuzz Cargo.toml
     create_fuzz_cargo_toml(fuzz_root, config)
-    
+
     # Generate build.rs
     create_build_rs(rust_root, config)
-    
+
     # Generate lib.rs
     create_lib_rs(rust_src, config)
-    
+
     # Generate dummy fuzz test
     create_dummy_fuzz_test(fuzz_targets, config)
-    
+
     # Save config for future use
     config.save_to_file(project_root / "portkit_config.json")
 
 
 @click.command()
-@click.argument('project_name')
-@click.option('--library-name', help='Rust library name (defaults to project_name)')
-@click.option('--c-source-dir', default='src', help='C source directory')
-@click.option('--c-source-subdir', help='C source subdirectory')
-@click.option('--config-file', help='Path to existing config file')
+@click.argument("project_name")
+@click.option("--library-name", help="Rust library name (defaults to project_name)")
+@click.option(
+    "--c-source-dir", default="src", help="C source directory relative to project root"
+)
+@click.option("--config-file", help="Path to existing config file")
 def setup_rust_project(
-    project_name: str,
+    project_root: Path,
     library_name: str | None = None,
-    c_source_dir: str = "src", 
-    c_source_subdir: str | None = None,
-    config_file: str | None = None
+    c_source_dir: str = "src",
+    config_file: str | None = None,
 ):
     """Set up Rust project structure for C library porting."""
-    
-    project_root = Path.cwd() / project_name
-    
+    project_name = project_root.name
+
     if config_file:
         config = ProjectConfig.load_from_file(Path(config_file))
     else:
         config = ProjectConfig(
             project_name=project_name,
             library_name=library_name or project_name,
+            project_root=project_root,
             c_source_dir=c_source_dir,
-            c_source_subdir=c_source_subdir
         )
-    
+
     setup_project(project_root, config)
-    
+
     click.echo(f"✅ Created Rust project structure for {project_name}")
     click.echo(f"📁 Project root: {project_root}")
     click.echo(f"⚙️  Configuration saved to: {project_root}/portkit_config.json")

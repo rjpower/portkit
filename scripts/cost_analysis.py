@@ -6,7 +6,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import litellm
-from litellm import token_counter
+from litellm import token_counter  # type: ignore
 
 
 def get_precise_token_counts(model, messages):

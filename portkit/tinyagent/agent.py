@@ -509,7 +509,7 @@ def _update_lib_rs(ctx: ToolContext, path: Path):
     if ctx.config.fuzz_dir in str(path):
         return
 
-    lib_rs_path = ctx.config.rust_src_path(ctx.project_root) / "lib.rs"
+    lib_rs_path = ctx.config.rust_src_path() / "lib.rs"
 
     # don't add lib.rs to lib.rs
     if path.stem == "lib":
@@ -529,7 +529,7 @@ def _update_fuzz_cargo_toml(ctx: ToolContext, path: Path):
     if ctx.config.fuzz_targets_dir not in str(path):
         return
 
-    cargo_toml_path = ctx.config.rust_fuzz_root_path(ctx.project_root) / "Cargo.toml"
+    cargo_toml_path = ctx.config.rust_fuzz_root_path() / "Cargo.toml"
 
     # Check if Cargo.toml exists, if not, skip updating it
     if not cargo_toml_path.exists():
@@ -580,8 +580,8 @@ def replace_file(args: WriteFileRequest, *, ctx: ToolContext) -> WriteFileResult
     """
     file_path = ctx.project_root / args.path
     # must be in the rust/src or rust/fuzz/
-    rust_src_path = str(ctx.config.rust_src_path(ctx.project_root))
-    rust_fuzz_path = str(ctx.config.rust_fuzz_root_path(ctx.project_root))
+    rust_src_path = str(ctx.config.rust_src_path())
+    rust_fuzz_path = str(ctx.config.rust_fuzz_root_path())
     if rust_src_path not in str(file_path) and rust_fuzz_path not in str(file_path):
         raise ValueError(
             f"File {args.path} must be in the {ctx.config.rust_src_dir} or {ctx.config.fuzz_dir} directory"
@@ -614,8 +614,8 @@ def append_to_file(args: AppendFileRequest, *, ctx: ToolContext) -> AppendFileRe
     """
     file_path = ctx.project_root / args.path
     # must be in the rust/src or rust/fuzz/
-    rust_src_path = str(ctx.config.rust_src_path(ctx.project_root))
-    rust_fuzz_path = str(ctx.config.rust_fuzz_root_path(ctx.project_root))
+    rust_src_path = str(ctx.config.rust_src_path())
+    rust_fuzz_path = str(ctx.config.rust_fuzz_root_path())
     if rust_src_path not in str(file_path) and rust_fuzz_path not in str(file_path):
         raise ValueError(
             f"File {args.path} must be in the {ctx.config.rust_src_dir} or {ctx.config.fuzz_dir} directory"
@@ -662,14 +662,14 @@ def run_fuzz_test(args: RunFuzzTestRequest, *, ctx: ToolContext) -> FuzzTestResu
 
     result = subprocess.run(
         fuzz_cmd,
-        cwd=ctx.config.rust_root_path(ctx.project_root),
+        cwd=ctx.config.rust_root_path(),
         capture_output=True,
         text=True,
     )
     ctx.console.print("[green]done[/green]")
 
     # give the LLM a hint about the source of the fuzz test.
-    source_path = ctx.config.rust_fuzz_path_for_symbol(ctx.project_root, args.target.replace('fuzz_', ''))
+    source_path = ctx.config.rust_fuzz_path_for_symbol(args.target.replace('fuzz_', ''))
 
     if result.returncode != 0:
         raise FuzzTestError(source_path, result.stderr)
@@ -739,8 +739,8 @@ def edit_code(args: EditCodeRequest, *, ctx: ToolContext) -> EditCodeResult:
             file_path = ctx.project_root / match.file_path
             ctx.console.print(f"[cyan]Applying patch to {file_path}[/cyan]")
 
-            rust_src_path = str(ctx.config.rust_src_path(ctx.project_root))
-            rust_fuzz_path = str(ctx.config.rust_fuzz_root_path(ctx.project_root))
+            rust_src_path = str(ctx.config.rust_src_path())
+            rust_fuzz_path = str(ctx.config.rust_fuzz_root_path())
             if rust_src_path not in str(file_path) and rust_fuzz_path not in str(file_path):
                 raise ValueError(
                     f"File {match.file_path} must be in the {ctx.config.rust_src_dir} or {ctx.config.fuzz_dir} directory"

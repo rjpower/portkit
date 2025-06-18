@@ -18,8 +18,9 @@ def zopfli_src():
 
 @pytest.fixture
 def analyzer():
-    config = ProjectConfig(project_name="test", library_name="test")
-    return SourceMap(Path(__file__).parent.parent / "zopfli", config)
+    project_root = Path(__file__).parent.parent / "zopfli"
+    config = ProjectConfig(project_name="test", library_name="test", project_root=project_root)
+    return SourceMap(project_root, config)
 
 
 def test_zopfli_topological_ordering(zopfli_src, analyzer):

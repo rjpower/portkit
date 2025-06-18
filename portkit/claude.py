@@ -10,11 +10,11 @@ if TYPE_CHECKING:
     from portkit.config import ProjectConfig
 
 
-def compile_project(project_root: Path, config: "ProjectConfig") -> None:
+def compile_project(config: "ProjectConfig") -> None:
     """Compile the Rust project using cargo fuzz build."""
     result = subprocess.run(
         ["cargo", "fuzz", "build"],
-        cwd=config.rust_root_path(project_root),
+        cwd=config.rust_root_path(),
         capture_output=True,
         text=True,
     )
@@ -41,7 +41,7 @@ def call_claude_code(prompt: str, working_dir: Path) -> None:
 
 
 def create_claude_fuzz_prompt(
-    symbol: Symbol, source_map: SourceMap, project_root: Path, config: "ProjectConfig"
+    symbol: Symbol, source_map: SourceMap, config: "ProjectConfig"
 ) -> str:
     from portkit.implfuzz import load_prompt
 
@@ -60,12 +60,12 @@ def create_claude_fuzz_prompt(
     c_definition = ""
     if locations.c_source_path:
         c_definition = source_map.find_c_symbol_definition(
-            project_root / locations.c_source_path, symbol.name
+            config.project_root / locations.c_source_path, symbol.name
         )
     c_declaration = ""
     if locations.c_header_path:
         c_declaration = source_map.find_c_symbol_definition(
-            project_root / locations.c_header_path, symbol.name
+            config.project_root / locations.c_header_path, symbol.name
         )
 
     return f"""You are an expert C to Rust translator. Your task is to create:
@@ -78,7 +78,7 @@ Symbol: {symbol.name}
 Kind: {symbol.kind}
 
 Project structure:
-- C source is in {config.c_source_dir}/{"" if not config.c_source_subdir else config.c_source_subdir + "/"}
+- C source is in {config.c_source_dir}/
 - Rust project is in {config.rust_dir}/
 - Rust source is in {config.rust_dir}/{config.rust_src_dir}/
 - Rust fuzz tests are in {config.rust_dir}/{config.fuzz_dir}/{config.fuzz_targets_dir}/
@@ -121,7 +121,7 @@ Create:
 
 
 async def port_symbol_claude(
-    symbol: Symbol, *, project_root: Path, source_map: SourceMap, config: "ProjectConfig"
+    symbol: Symbol, *, source_map: SourceMap, config: "ProjectConfig"
 ) -> None:
     """Port a single symbol using Claude Code."""
     print(
@@ -134,20 +134,20 @@ async def port_symbol_claude(
 
     # Check if FFI binding exists
     ffi_exists = locations.ffi_path and source_map.find_ffi_binding_definition(
-        project_root / locations.ffi_path, symbol.name
+        config.project_root / locations.ffi_path, symbol.name
     )
 
     # Check if Rust implementation exists and is not a stub
     rust_impl_exists = False
     if locations.rust_src_path:
         rust_content = source_map.find_rust_symbol_definition(
-            project_root / locations.rust_src_path, symbol.name
+            config.project_root / locations.rust_src_path, symbol.name
         )
         rust_impl_exists = rust_content and "unimplemented!()" not in rust_content
 
     # Check if fuzz test exists
     fuzz_exists = (
-        locations.rust_fuzz_path and (project_root / locations.rust_fuzz_path).exists()
+        locations.rust_fuzz_path and (config.project_root / locations.rust_fuzz_path).exists()
     )
 
     if ffi_exists and rust_impl_exists and fuzz_exists:
@@ -155,9 +155,9 @@ async def port_symbol_claude(
         return
 
     print(f"\nGenerating stub, FFI, and fuzz test for {symbol.name}...")
-    stub_fuzz_prompt = create_claude_fuzz_prompt(symbol, source_map, project_root, config)
-    call_claude_code(stub_fuzz_prompt, project_root)
+    stub_fuzz_prompt = create_claude_fuzz_prompt(symbol, source_map, config)
+    call_claude_code(stub_fuzz_prompt, config.project_root)
     print(f"Stub, FFI, and fuzz test generation completed for {symbol.name}")
 
-    compile_project(project_root, config)
+    compile_project(config)
     print(f"\nSuccessfully processed {symbol.name}")

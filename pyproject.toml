@@ -56,12 +56,9 @@ select = [
 
 ]
 ignore = [
-    # Disable some rules that are overly pedantic. Add/remove as desired:
     "E501", # https://docs.astral.sh/ruff/rules/line-too-long/
     "E402", # https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file/
     "E731", # https://docs.astral.sh/ruff/rules/lambda-assignment/
-    # We use both ruff formatter and linter so some rules should always be disabled.
-    # See: https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
     "W191", # https://docs.astral.sh/ruff/rules/tab-indentation/
     "E111", # https://docs.astral.sh/ruff/rules/indentation-with-invalid-multiple/
     "E114", # https://docs.astral.sh/ruff/rules/indentation-with-invalid-multiple-comment/
@@ -83,7 +80,6 @@ python_files = ["*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 testpaths = [
-    "src",
     "tests",
 ]
 norecursedirs = []
