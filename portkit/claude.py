@@ -2,15 +2,19 @@
 
 import subprocess
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from portkit.sourcemap import SourceMap, Symbol
 
+if TYPE_CHECKING:
+    from portkit.config import ProjectConfig
 
-def compile_project(project_root: Path) -> None:
+
+def compile_project(project_root: Path, config: "ProjectConfig") -> None:
     """Compile the Rust project using cargo fuzz build."""
     result = subprocess.run(
         ["cargo", "fuzz", "build"],
-        cwd=project_root / "rust",
+        cwd=config.rust_root_path(project_root),
         capture_output=True,
         text=True,
     )
@@ -37,7 +41,7 @@ def call_claude_code(prompt: str, working_dir: Path) -> None:
 
 
 def create_claude_fuzz_prompt(
-    symbol: Symbol, source_map: SourceMap, project_root: Path
+    symbol: Symbol, source_map: SourceMap, project_root: Path, config: "ProjectConfig"
 ) -> str:
     from portkit.implfuzz import load_prompt
 
@@ -74,10 +78,10 @@ Symbol: {symbol.name}
 Kind: {symbol.kind}
 
 Project structure:
-- C source is in src/
-- Rust project is in rust/
-- Rust source is in rust/src/
-- Rust fuzz tests are in rust/fuzz/fuzz_targets/
+- C source is in {config.c_source_dir}/{"" if not config.c_source_subdir else config.c_source_subdir + "/"}
+- Rust project is in {config.rust_dir}/
+- Rust source is in {config.rust_dir}/{config.rust_src_dir}/
+- Rust fuzz tests are in {config.rust_dir}/{config.fuzz_dir}/{config.fuzz_targets_dir}/
 
 Guidelines:
 - For functions: Create implementation with correct signature and implementation
@@ -94,13 +98,13 @@ Fuzz test requirements:
 2. Call both C implementation (via FFI) and Rust implementation
 3. Compare outputs and assert they are identical
 4. Handle edge cases gracefully with clear assertion messages
-5. C FFI implementations are in the zopfli::ffi module
-6. Rust implementations are in zopfli::{rust_module}
+5. C FFI implementations are in the {config.library_name}::ffi module
+6. Rust implementations are in {config.library_name}::{rust_module}
 
 Create:
-1. Rust implementation stub in rust/src/{rust_module}.rs
-2. FFI binding in rust/src/ffi.rs
-3. Fuzz test in rust/fuzz/fuzz_targets/fuzz_{symbol.name}.rs
+1. Rust implementation stub in {config.rust_dir}/{config.rust_src_dir}/{rust_module}.rs
+2. FFI binding in {config.rust_dir}/{config.rust_src_dir}/ffi.rs
+3. Fuzz test in {config.rust_dir}/{config.fuzz_dir}/{config.fuzz_targets_dir}/fuzz_{symbol.name}.rs
 
 <fuzzing>
 {load_prompt("example_fuzz_test")}
@@ -117,7 +121,7 @@ Create:
 
 
 async def port_symbol_claude(
-    symbol: Symbol, *, project_root: Path, source_map: SourceMap
+    symbol: Symbol, *, project_root: Path, source_map: SourceMap, config: "ProjectConfig"
 ) -> None:
     """Port a single symbol using Claude Code."""
     print(
@@ -151,9 +155,9 @@ async def port_symbol_claude(
         return
 
     print(f"\nGenerating stub, FFI, and fuzz test for {symbol.name}...")
-    stub_fuzz_prompt = create_claude_fuzz_prompt(symbol, source_map, project_root)
+    stub_fuzz_prompt = create_claude_fuzz_prompt(symbol, source_map, project_root, config)
     call_claude_code(stub_fuzz_prompt, project_root)
     print(f"Stub, FFI, and fuzz test generation completed for {symbol.name}")
 
-    compile_project(project_root)
+    compile_project(project_root, config)
     print(f"\nSuccessfully processed {symbol.name}")

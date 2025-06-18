@@ -12,6 +12,7 @@ from rich.console import Console
 from portkit.checkpoint import SourceCheckpoint
 from portkit.claude import port_symbol_claude
 from portkit.codex import call_with_codex_retry
+from portkit.config import ProjectConfig
 from portkit.interrupt import InterruptHandler
 from portkit.sourcemap import (
     SourceMap,
@@ -52,6 +53,7 @@ UNIFIED_IMPLEMENTATION_PROMPT = f"""
 class BuilderContext(BaseModel):
     console: Console = Field(default_factory=Console)
     project_root: Path
+    config: ProjectConfig
     source_map: SourceMap
     editor_type: EditorType = EditorType.LITELLM
     read_files: set[str] = Field(default_factory=set)
@@ -63,24 +65,38 @@ class BuilderContext(BaseModel):
 
     model_config = {"arbitrary_types_allowed": True}
 
+    @classmethod
+    def from_project_root(cls, project_root: Path, editor_type: EditorType = EditorType.LITELLM) -> "BuilderContext":
+        """Create BuilderContext from a project root directory."""
+        config = ProjectConfig.find_project_config(project_root)
+        if not config:
+            raise ValueError(f"No portkit_config.json found in {project_root} or its parent directories")
+        
+        source_map = SourceMap(project_root, config)
+        return cls(
+            project_root=project_root,
+            config=config,
+            source_map=source_map,
+            editor_type=editor_type
+        )
+
     @property
     def rust_ffi_path(self) -> Path:
-        return self.project_root / "rust/src/ffi.rs"
+        return self.config.rust_ffi_path(self.project_root)
 
     @property
     def rust_src_root(self) -> Path:
-        return self.project_root / "rust/src"
+        return self.config.rust_src_path(self.project_root)
 
     def rust_src_for_symbol(self, symbol: Symbol) -> Path:
-        if symbol.source_path:
-            return self.rust_src_root / f"{symbol.source_path.stem}.rs"
-        elif symbol.header_path:
-            return self.rust_src_root / f"{symbol.header_path.stem}.rs"
-        else:
-            return self.rust_src_root / f"{symbol.name}.rs"
+        return self.config.rust_src_path_for_symbol(self.project_root, symbol.source_path)
 
     def rust_fuzz_for_symbol(self, symbol: Symbol) -> Path:
-        return self.project_root / "rust/fuzz/fuzz_targets" / f"fuzz_{symbol.name}.rs"
+        return self.config.rust_fuzz_path_for_symbol(self.project_root, symbol.name)
+
+    @property
+    def c_source_path(self) -> Path:
+        return self.config.c_source_path(self.project_root)
 
 
 def has_implementation(symbol_kind: str) -> bool:
@@ -169,7 +185,7 @@ def is_symbol_ported(symbol: Symbol, ctx: BuilderContext, initial: bool = True) 
             except Exception as e:
                 result.error(f"Fuzz test failed: {str(e)}")
 
-        compile_rust_project(ctx.project_root / "rust", ctx=ctx)
+        compile_rust_project(ctx.config.rust_root_path(ctx.project_root), ctx=ctx)
 
     return result
 
@@ -339,7 +355,7 @@ Repository structure and key symbols:
         )
     elif ctx.editor_type == EditorType.CLAUDE:
         await port_symbol_claude(
-            symbol, project_root=ctx.project_root, source_map=ctx.source_map
+            symbol, project_root=ctx.project_root, source_map=ctx.source_map, config=ctx.config
         )
         return completion_fn(False)
     else:
@@ -370,7 +386,7 @@ async def port_symbol(symbol: Symbol, *, ctx: BuilderContext) -> None:
     
     ctx.console.print(f"[bold blue]Processing {symbol}[/bold blue]")
     # save a checkpoint and restore if compilation fails after the LLM is done.
-    checkpoint = SourceCheckpoint(source_dir=ctx.project_root / "rust")
+    checkpoint = SourceCheckpoint(source_dir=ctx.config.rust_root_path(ctx.project_root))
     checkpoint.save()
     try:
         await generate_implementation(
@@ -379,17 +395,16 @@ async def port_symbol(symbol: Symbol, *, ctx: BuilderContext) -> None:
         )
     finally:
         try:
-            compile_rust_project(ctx.project_root / "rust", ctx=ctx)
+            compile_rust_project(ctx.config.rust_root_path(ctx.project_root), ctx=ctx)
         except Exception:
             ctx.console.print("[red]Compilation failed, restoring checkpoint[/red]")
             checkpoint.restore()
             raise
         checkpoint.cleanup()
 
-async def run_traversal_pipeline(
-    source_dir: str, *, ctx: BuilderContext
-) -> dict[str, Any]:
-    """Run the complete traversal pipeline on a C source directory."""
+async def run_traversal_pipeline(*, ctx: BuilderContext) -> dict[str, Any]:
+    """Run the complete traversal pipeline on the configured C source directory."""
+    source_dir = str(ctx.c_source_path)
     ctx.console.print(
         f"[bold green]Starting traversal pipeline on {source_dir}[/bold green]"
     )
@@ -451,18 +466,13 @@ async def run_traversal_pipeline(
 
 
 async def main_litellm():
-    project_root = Path(__file__).parent.parent / "zopfli-gemini-pro"
-    ctx = BuilderContext(
-        project_root=project_root,
-        source_map=SourceMap(project_root),
-        console=Console(),
-    )
+    project_root = Path.cwd()
+    ctx = BuilderContext.from_project_root(project_root)
     ctx.interrupt_handler.setup()
 
     try:
-        compile_rust_project(ctx.project_root / "rust", ctx=ctx)
-        source_dir = str(ctx.project_root / "src" / "zopfli")
-        results = await run_traversal_pipeline(source_dir, ctx=ctx)
+        compile_rust_project(ctx.config.rust_root_path(ctx.project_root), ctx=ctx)
+        results = await run_traversal_pipeline(ctx=ctx)
         if results["failed"] > 0:
             ctx.console.print(
                 f"[red]\nPipeline completed with {results['failed']} failures[/red]"
@@ -478,13 +488,8 @@ async def main_litellm():
 
 async def main_with_editor(editor_type: EditorType):
     """Main function that runs with specified editor type."""
-    project_root = Path(__file__).parent.parent / "zopfli-gemini-pro"
-    ctx = BuilderContext(
-        project_root=project_root,
-        source_map=SourceMap(project_root),
-        editor_type=editor_type,
-        console=Console(),
-    )
+    project_root = Path.cwd()
+    ctx = BuilderContext.from_project_root(project_root, editor_type)
 
     ctx.console.print(f"[bold green]Using editor: {editor_type.value}[/bold green]")
 
@@ -492,9 +497,8 @@ async def main_with_editor(editor_type: EditorType):
     ctx.interrupt_handler.setup()
 
     try:
-        compile_rust_project(ctx.project_root / "rust", ctx=ctx)
-        source_dir = str(ctx.project_root / "src" / "zopfli")
-        results = await run_traversal_pipeline(source_dir, ctx=ctx)
+        compile_rust_project(ctx.config.rust_root_path(ctx.project_root), ctx=ctx)
+        results = await run_traversal_pipeline(ctx=ctx)
 
         if results["failed"] > 0:
             ctx.console.print(
@@ -508,6 +512,46 @@ async def main_with_editor(editor_type: EditorType):
         # Cleanup interrupt handler
         ctx.interrupt_handler.cleanup()
 
+
+@click.group()
+def cli():
+    """PortKit: AI-powered C to Rust porting toolkit."""
+    pass
+
+@cli.command()
+@click.argument('project_name')
+@click.option('--library-name', help='Rust library name (defaults to project_name)')
+@click.option('--c-source-dir', default='src', help='C source directory')
+@click.option('--c-source-subdir', help='C source subdirectory')
+def setup(project_name: str, library_name: str = None, c_source_dir: str = "src", c_source_subdir: str = None):
+    """Set up Rust project structure for a new C library port."""
+    from .config import ProjectConfig
+    from .setup_rust import setup_project
+    
+    project_root = Path.cwd() / project_name
+    config = ProjectConfig(
+        project_name=project_name,
+        library_name=library_name or project_name,
+        c_source_dir=c_source_dir,
+        c_source_subdir=c_source_subdir
+    )
+    setup_project(project_root, config)
+    
+    click.echo(f"✅ Created Rust project structure for {project_name}")
+    click.echo(f"📁 Project root: {project_root}")
+    click.echo(f"⚙️  Configuration saved to: {project_root}/portkit_config.json")
+
+@cli.command()
+@click.option(
+    "--editor",
+    type=click.Choice([e.value for e in EditorType], case_sensitive=False),
+    default=EditorType.LITELLM.value,
+    help="Editor type to use for code generation",
+)
+def port(editor: str):
+    """Port C library to Rust using AI models."""
+    editor_type = EditorType(editor.lower())
+    asyncio.run(main_with_editor(editor_type))
 
 @click.command()
 @click.option(
@@ -523,4 +567,8 @@ def main(editor: str):
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] in ['setup', 'port']:
+        cli()
+    else:
+        main()

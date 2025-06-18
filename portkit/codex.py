@@ -10,6 +10,11 @@ from rich.console import Console
 class ToolContext(Protocol):
     console: Console
     project_root: Path
+    
+    @property  
+    def config(self) -> Any:
+        """Project configuration."""
+        ...
 
 
 class CompletionProtocol(Protocol):

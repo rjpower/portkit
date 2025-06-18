@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from portkit.config import ProjectConfig
 from portkit.implfuzz import BuilderContext, generate_unified_prompt
 from portkit.sourcemap import SourceMap, Symbol
 from portkit.tinyagent.agent import (
@@ -40,9 +41,11 @@ from portkit.tinyagent.agent import (
 
 def create_test_context(project_root: Path) -> BuilderContext:
     """Helper function to create BuilderContext for tests."""
+    config = ProjectConfig(project_name="test", library_name="test")
     return BuilderContext(
         project_root=project_root,
-        source_map=SourceMap(project_root),
+        config=config,
+        source_map=SourceMap(project_root, config),
     )
 
 

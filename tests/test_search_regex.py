@@ -3,6 +3,7 @@
 import tempfile
 from pathlib import Path
 
+from portkit.config import ProjectConfig
 from portkit.implfuzz import BuilderContext
 from portkit.sourcemap import SourceMap
 from portkit.tinyagent.agent import SearchRequest, SearchSpec, search_files
@@ -45,9 +46,11 @@ int SomeOtherFunction() {
 """)
 
         # Create BuilderContext
+        config = ProjectConfig(project_name="test", library_name="test")
         ctx = BuilderContext(
             project_root=tmpdir_path,
-            source_map=SourceMap(tmpdir_path),
+            config=config,
+            source_map=SourceMap(tmpdir_path, config),
         )
 
         # Test regex OR pattern
@@ -95,9 +98,11 @@ pub fn simple_function() -> i32 {
 """)
 
         # Create BuilderContext
+        config = ProjectConfig(project_name="test", library_name="test")
         ctx = BuilderContext(
             project_root=tmpdir_path,
-            source_map=SourceMap(tmpdir_path),
+            config=config,
+            source_map=SourceMap(tmpdir_path, config),
         )
 
         # Test simple pattern
@@ -136,9 +141,11 @@ pub fn other_function() -> i32 { 0 }
 """)
 
         # Create BuilderContext
+        config = ProjectConfig(project_name="test", library_name="test")
         ctx = BuilderContext(
             project_root=tmpdir_path,
-            source_map=SourceMap(tmpdir_path),
+            config=config,
+            source_map=SourceMap(tmpdir_path, config),
         )
 
         # Test regex pattern for func_* functions

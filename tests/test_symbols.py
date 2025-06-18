@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from portkit.config import ProjectConfig
 from portkit.implfuzz import BuilderContext
 from portkit.sourcemap import SourceMap
 from portkit.tinyagent.agent import SymbolStatusRequest, symbol_status
@@ -30,9 +31,11 @@ def temp_project():
 
 
 def create_ctx(temp_project):
+    config = ProjectConfig(project_name="test", library_name="test")
     return BuilderContext(
         project_root=temp_project,
-        source_map=SourceMap(temp_project),
+        config=config,
+        source_map=SourceMap(temp_project, config),
     )
 
 
@@ -57,7 +60,8 @@ int ZopfliVerifyLenDist(const unsigned char* data, size_t datasize,
 """)
     
     # Create SourceMap (parsing happens at init)
-    source_map = SourceMap(temp_project)
+    config = ProjectConfig(project_name="test", library_name="test")
+    source_map = SourceMap(temp_project, config)
     symbols = source_map.parse_project()
     
     # Find the parsed symbol
@@ -91,7 +95,8 @@ void init_cache(struct ZopfliLongestMatchCache* cache);
 """)
 
     # Create SourceMap (parsing happens at init)
-    source_map = SourceMap(temp_project)
+    config = ProjectConfig(project_name="test", library_name="test")
+    source_map = SourceMap(temp_project, config)
     symbols = source_map.parse_project()
 
     # Debug: Print all found symbols
@@ -122,7 +127,8 @@ int TestFunction(int x, int y) {
 """)
 
     # Create SourceMap (parsing happens at init)
-    source_map = SourceMap(temp_project)
+    config = ProjectConfig(project_name="test", library_name="test")
+    source_map = SourceMap(temp_project, config)
     source_map.parse_project()
 
     # Test get_symbol_source_code
@@ -150,7 +156,8 @@ extern "C" {
 """)
 
     # Create SourceMap (parsing happens at init)
-    source_map = SourceMap(temp_project)
+    config = ProjectConfig(project_name="test", library_name="test")
+    source_map = SourceMap(temp_project, config)
     source_map.parse_project()
 
     # Test lookup_symbol
@@ -170,7 +177,8 @@ pub fn test_function(x: i32, y: i32) -> i32 {
 """)
 
     # Create SourceMap (parsing happens at init)
-    source_map = SourceMap(temp_project)
+    config = ProjectConfig(project_name="test", library_name="test")
+    source_map = SourceMap(temp_project, config)
     source_map.parse_project()
 
     # Test find_rust_symbol_definition
@@ -196,7 +204,8 @@ fuzz_target!(|data: &[u8]| {
 });
 """)
     
-    source_map = SourceMap(temp_project)
+    config = ProjectConfig(project_name="test", library_name="test")
+    source_map = SourceMap(temp_project, config)
     assert source_map.is_fuzz_test_defined(fuzz_file, "TestFunction")
     assert not source_map.is_fuzz_test_defined(fuzz_file, "NonExistentFunction")
 
@@ -236,7 +245,8 @@ pub fn rust_function() {
 """)
     
     # Create SourceMap (parsing happens at init)
-    source_map = SourceMap(temp_project)
+    config = ProjectConfig(project_name="test", library_name="test")
+    source_map = SourceMap(temp_project, config)
     symbols = source_map.parse_project()
     
     # Debug: Print all found symbols
@@ -322,7 +332,8 @@ int main() {
 """)
     
     # Test that we can create and parse a SourceMap
-    source_map = SourceMap(temp_project)
+    config = ProjectConfig(project_name="test", library_name="test")
+    source_map = SourceMap(temp_project, config)
     symbols = source_map.parse_project()
     
     # Should find both functions in topological order

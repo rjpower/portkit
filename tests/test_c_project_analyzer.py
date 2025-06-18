@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from portkit.config import ProjectConfig
 from portkit.sourcemap import SourceMap
 
 
@@ -17,7 +18,8 @@ def zopfli_src():
 
 @pytest.fixture
 def analyzer():
-    return SourceMap(Path(__file__).parent.parent / "zopfli")
+    config = ProjectConfig(project_name="test", library_name="test")
+    return SourceMap(Path(__file__).parent.parent / "zopfli", config)
 
 
 def test_zopfli_topological_ordering(zopfli_src, analyzer):

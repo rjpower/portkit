@@ -5,13 +5,17 @@ Debug script to print the unified prompt for testing and inspection.
 
 from pathlib import Path
 
+from portkit.config import ProjectConfig
 from portkit.implfuzz import BuilderContext, generate_unified_prompt
 from portkit.sourcemap import SourceMap
 
 
 def create_builder_ctx(project_root: Path) -> BuilderContext:
+    config = ProjectConfig(project_name="debug", library_name="debug")
     ctx = BuilderContext(
-        project_root=project_root, source_map=SourceMap(project_root=project_root)
+        project_root=project_root,
+        config=config,
+        source_map=SourceMap(project_root, config)
     )
     ctx.processed_symbols.add("ZopfliOptions")
     ctx.processed_symbols.add("ZopfliDeflate")

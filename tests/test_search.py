@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from portkit.config import ProjectConfig
 from portkit.implfuzz import (
     BuilderContext,
 )
@@ -17,9 +18,11 @@ from portkit.tinyagent.agent import SearchRequest, SearchSpec, search_files
 
 def create_test_context(project_root: Path) -> BuilderContext:
     """Helper function to create BuilderContext for tests."""
+    config = ProjectConfig(project_name="test", library_name="test")
     return BuilderContext(
         project_root=project_root,
-        source_map=SourceMap(project_root),
+        config=config,
+        source_map=SourceMap(project_root, config),
     )
 
 

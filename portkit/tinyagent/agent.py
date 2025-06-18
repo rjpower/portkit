@@ -35,6 +35,11 @@ class ToolContext(Protocol):
     source_map: SourceMap
     read_files: set[str]
     interrupt_handler: InterruptHandler
+    
+    @property
+    def config(self) -> Any:
+        """Project configuration with directory structure and build settings."""
+        ...
 
 
 class TaskStatusType(str, Enum):
@@ -501,10 +506,10 @@ class SymbolStatusResult(BaseModel):
 
 
 def _update_lib_rs(ctx: ToolContext, path: Path):
-    if "fuzz" in str(path):
+    if ctx.config.fuzz_dir in str(path):
         return
 
-    lib_rs_path = ctx.project_root / "rust" / "src" / "lib.rs"
+    lib_rs_path = ctx.config.rust_src_path(ctx.project_root) / "lib.rs"
 
     # don't add lib.rs to lib.rs
     if path.stem == "lib":
@@ -521,10 +526,10 @@ def _update_lib_rs(ctx: ToolContext, path: Path):
 
 
 def _update_fuzz_cargo_toml(ctx: ToolContext, path: Path):
-    if "fuzz_targets" not in str(path):
+    if ctx.config.fuzz_targets_dir not in str(path):
         return
 
-    cargo_toml_path = ctx.project_root / "rust" / "fuzz" / "Cargo.toml"
+    cargo_toml_path = ctx.config.rust_fuzz_root_path(ctx.project_root) / "Cargo.toml"
 
     # Check if Cargo.toml exists, if not, skip updating it
     if not cargo_toml_path.exists():
@@ -539,7 +544,7 @@ def _update_fuzz_cargo_toml(ctx: ToolContext, path: Path):
                 f"""
 [[bin]]
 name = "{path.stem}"
-path = "fuzz_targets/{path.stem}.rs"
+path = "{ctx.config.fuzz_targets_dir}/{path.stem}.rs"
 test = false
 doc = false
 """
@@ -575,9 +580,11 @@ def replace_file(args: WriteFileRequest, *, ctx: ToolContext) -> WriteFileResult
     """
     file_path = ctx.project_root / args.path
     # must be in the rust/src or rust/fuzz/
-    if "rust/src" not in str(file_path) and "rust/fuzz" not in str(file_path):
+    rust_src_path = str(ctx.config.rust_src_path(ctx.project_root))
+    rust_fuzz_path = str(ctx.config.rust_fuzz_root_path(ctx.project_root))
+    if rust_src_path not in str(file_path) and rust_fuzz_path not in str(file_path):
         raise ValueError(
-            f"File {args.path} must be in the rust/src or rust/fuzz directory"
+            f"File {args.path} must be in the {ctx.config.rust_src_dir} or {ctx.config.fuzz_dir} directory"
         )
 
     # Check if file was read first, unless it doesn't exist yet
@@ -607,9 +614,11 @@ def append_to_file(args: AppendFileRequest, *, ctx: ToolContext) -> AppendFileRe
     """
     file_path = ctx.project_root / args.path
     # must be in the rust/src or rust/fuzz/
-    if "rust/src" not in str(file_path) and "rust/fuzz" not in str(file_path):
+    rust_src_path = str(ctx.config.rust_src_path(ctx.project_root))
+    rust_fuzz_path = str(ctx.config.rust_fuzz_root_path(ctx.project_root))
+    if rust_src_path not in str(file_path) and rust_fuzz_path not in str(file_path):
         raise ValueError(
-            f"File {args.path} must be in the rust/src or rust/fuzz directory"
+            f"File {args.path} must be in the {ctx.config.rust_src_dir} or {ctx.config.fuzz_dir} directory"
         )
 
     file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -653,16 +662,14 @@ def run_fuzz_test(args: RunFuzzTestRequest, *, ctx: ToolContext) -> FuzzTestResu
 
     result = subprocess.run(
         fuzz_cmd,
-        cwd=ctx.project_root / "rust",
+        cwd=ctx.config.rust_root_path(ctx.project_root),
         capture_output=True,
         text=True,
     )
     ctx.console.print("[green]done[/green]")
 
     # give the LLM a hint about the source of the fuzz test.
-    source_path = (
-        ctx.project_root / "rust" / "fuzz" / "fuzz_targets" / f"{args.target}.rs"
-    )
+    source_path = ctx.config.rust_fuzz_path_for_symbol(ctx.project_root, args.target.replace('fuzz_', ''))
 
     if result.returncode != 0:
         raise FuzzTestError(source_path, result.stderr)
@@ -732,9 +739,11 @@ def edit_code(args: EditCodeRequest, *, ctx: ToolContext) -> EditCodeResult:
             file_path = ctx.project_root / match.file_path
             ctx.console.print(f"[cyan]Applying patch to {file_path}[/cyan]")
 
-            if "rust/src" not in str(file_path) and "rust/fuzz" not in str(file_path):
+            rust_src_path = str(ctx.config.rust_src_path(ctx.project_root))
+            rust_fuzz_path = str(ctx.config.rust_fuzz_root_path(ctx.project_root))
+            if rust_src_path not in str(file_path) and rust_fuzz_path not in str(file_path):
                 raise ValueError(
-                    f"File {match.file_path} must be in the rust/src or rust/fuzz directory"
+                    f"File {match.file_path} must be in the {ctx.config.rust_src_dir} or {ctx.config.fuzz_dir} directory"
                 )
 
             if not file_path.exists():
@@ -856,7 +865,7 @@ def symbol_status(args: SymbolStatusRequest, *, ctx: ToolContext) -> SymbolStatu
     """
     # Create a new SourceMap for each symbol request, as we may have changed
     # the repo since the last request.
-    source_map = SourceMap(ctx.project_root)
+    source_map = SourceMap(ctx.project_root, ctx.config)
     source_map.parse_project()  # Parse to populate the symbols
 
     symbols = []

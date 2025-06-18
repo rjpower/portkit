@@ -4,12 +4,15 @@ import re
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import tree_sitter_c as tsc
 import tree_sitter_rust as tsrust
 from pydantic import BaseModel
 from tree_sitter import Language, Node, Parser
+
+if TYPE_CHECKING:
+    from portkit.config import ProjectConfig
 
 
 class SymbolInfo(BaseModel):
@@ -142,8 +145,9 @@ class Symbol:
 class SourceMap:
     """Unified source map for C and Rust symbols with dependency analysis."""
 
-    def __init__(self, project_root: Path):
+    def __init__(self, project_root: Path, config: "ProjectConfig"):
         self.project_root = project_root
+        self.config = config
         self.c_language = Language(tsc.language())
         self.rust_language = Language(tsrust.language())
         self.c_parser = Parser(self.c_language)
@@ -1178,16 +1182,16 @@ class SourceMap:
 
         # Check for FFI binding manually if not found in symbols
         if not info.ffi_path:
-            ffi_path = self.project_root / "rust" / "src" / "ffi.rs"
+            ffi_path = self.config.rust_ffi_path(self.project_root)
             if ffi_path.exists() and self.find_ffi_binding_definition(
                 ffi_path, symbol_name
             ):
-                info.ffi_path = "rust/src/ffi.rs"
+                info.ffi_path = str(ffi_path.relative_to(self.project_root))
 
         # Check for fuzz test
-        fuzz_path = self.project_root / "rust" / "fuzz" / "fuzz_targets" / f"fuzz_{symbol_name}.rs"
+        fuzz_path = self.config.rust_fuzz_path_for_symbol(self.project_root, symbol_name)
         if fuzz_path.exists():
-            info.rust_fuzz_path = f"rust/fuzz/fuzz_targets/fuzz_{symbol_name}.rs"
+            info.rust_fuzz_path = str(fuzz_path.relative_to(self.project_root))
 
         return info
 
@@ -1480,7 +1484,10 @@ if __name__ == "__main__":
     print()
 
     # Create source map and parse project
-    source_map = SourceMap(project_root)
+    # For CLI usage, create a minimal config
+    from portkit.config import ProjectConfig
+    config = ProjectConfig(project_name="temp", library_name="temp")
+    source_map = SourceMap(project_root, config)
     symbols = source_map.parse_project()
 
     print(f"Found {len(symbols)} C symbols (functions, structs, enums):")
