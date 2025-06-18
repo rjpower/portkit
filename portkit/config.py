@@ -9,19 +9,19 @@ from pydantic import BaseModel, Field
 
 class ProjectConfig(BaseModel):
     """Configuration for a C-to-Rust porting project."""
-    
+
     # Project identification
     project_name: str
     library_name: str  # for cargo package names
-    project_root: Path
-    
-    # Directory structure  
+    project_root: Path | None = None
+
+    # Directory structure
     c_source_dir: str = "src"  # relative to project root
     rust_dir: str = "rust"
     rust_src_dir: str = "src" 
     fuzz_dir: str = "fuzz"
     fuzz_targets_dir: str = "fuzz_targets"
-    
+
     # Build configuration
     build_dependencies: dict[str, str] = Field(default_factory=lambda: {"cc": "1.0", "glob": "0.3"})
     dependencies: dict[str, str] = Field(default_factory=lambda: {"libc": "0.2"})
@@ -30,12 +30,12 @@ class ProjectConfig(BaseModel):
         "criterion": "0.5", 
         "rand": "0.8"
     })
-    
+
     # C compilation settings
     c_files: list[str] = Field(default_factory=list)  # List of C files to compile
     include_dirs: list[str] = Field(default_factory=list)  # Include directories
     compile_flags: list[str] = Field(default_factory=lambda: ["-Wno-unused-function"])
-    
+
     # Metadata
     authors: list[str] = Field(default_factory=list)
     description: str = ""

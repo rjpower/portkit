@@ -1,3 +1,9 @@
-// dummy file to make cargo happy
+#![no_main]
+use libfuzzer_sys::fuzz_target;
 
-fn main() {}
+fuzz_target!(|data: &[u8]| {
+    // Dummy fuzz test - replace with actual implementation
+    if data.len() > 0 {
+        // Add your fuzz testing logic here
+    }
+});

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 
-from ..portkit.config import ProjectConfig
+from portkit.config import ProjectConfig
 
 
 def format_dependencies(deps: dict[str, str]) -> str:
@@ -252,18 +252,30 @@ def setup_project(project_root: Path, config: ProjectConfig) -> None:
 
 
 @click.command()
-@click.argument("project_name")
+@click.option(
+    "--project-root",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    required=True,
+)
 @click.option("--library-name", help="Rust library name (defaults to project_name)")
 @click.option(
-    "--c-source-dir", default="src", help="C source directory relative to project root"
+    "--c-source-dir",
+    help="C source directory relative to project root",
+    required=True,
 )
 @click.option("--config-file", help="Path to existing config file")
 def setup_rust_project(
-    project_root: Path,
+    project_root: str,
     library_name: str | None = None,
     c_source_dir: str = "src",
     config_file: str | None = None,
 ):
+    project_root = Path(project_root)
+    assert project_root.exists(), f"Project root {project_root} does not exist"
+    assert (
+        project_root / c_source_dir
+    ).exists(), f"C source directory {project_root / c_source_dir} does not exist"
+
     """Set up Rust project structure for C library porting."""
     project_name = project_root.name
 

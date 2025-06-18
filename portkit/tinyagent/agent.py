@@ -177,31 +177,29 @@ async def call_with_tools(
     messages: list[dict[str, Any]],
     tools: ToolHandler,
     model: str,
-    project_root: Path | None = None,
     *,
     ctx: ToolContext,
 ) -> list[dict[str, Any]]:
     """Stream completion with function calling support."""
 
     # Log the completion request
-    if project_root:
-        timestamp = datetime.now().isoformat().replace(":", "_")
-        logs_dir = project_root / "logs" / "litellm"
-        logs_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().isoformat().replace(":", "_")
+    logs_dir = Path("logs/litellm")
+    logs_dir.mkdir(parents=True, exist_ok=True)
 
-        log_data = {
-            "timestamp": datetime.now().isoformat(),
-            "model": model,
-            "messages": messages,
-            "tools": tools.get_tools_spec(),
-            "stream": True,
-        }
+    log_data = {
+        "timestamp": datetime.now().isoformat(),
+        "model": model,
+        "messages": messages,
+        "tools": tools.get_tools_spec(),
+        "stream": True,
+    }
 
-        log_file = logs_dir / f"{timestamp}.json"
-        with open(log_file, "w") as f:
-            json.dump(log_data, f, indent=2)
+    log_file = logs_dir / f"{timestamp}.json"
+    with open(log_file, "w") as f:
+        json.dump(log_data, f, indent=2)
 
-        ctx.console.print(f"[dim]Logged completion request to {log_file}[/dim]")
+    ctx.console.print(f"[dim]Logged completion request to {log_file}[/dim]")
 
     response = await litellm.acompletion(
         model=model,
@@ -316,7 +314,6 @@ async def call_with_retry(
     messages: list[dict[str, Any]],
     completion_fn: CompletionProtocol,
     model: str = DEFAULT_MODEL,
-    project_root: Path | None = None,
     max_llm_calls: int = 25,
     *,
     ctx: ToolContext,
@@ -352,7 +349,9 @@ async def call_with_retry(
 
         # Call LLM with interrupt support
         try:
-            messages = await call_with_tools(messages, model, project_root, ctx=ctx)
+            messages = await call_with_tools(
+                messages, TOOL_HANDLER, model=model, ctx=ctx
+            )
         except Exception as e:
             # Check if this is an InterruptSignal
             if e.__class__.__name__ == "InterruptSignal":

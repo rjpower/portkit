@@ -484,7 +484,7 @@ async def main_litellm():
         ctx.interrupt_handler.cleanup()
 
 
-async def main_with_editor(editor_type: EditorType):
+async def main_with_editor(editor_type: EditorType, project_root: Path):
     """Main function that runs with specified editor type."""
     ctx = BuilderContext.from_project_root(project_root, editor_type)
 
@@ -528,6 +528,7 @@ def cli():
 )
 def main(editor: str, project_root: Path):
     """Port C code to Rust using AI-powered code generation."""
+    project_root = Path(project_root).resolve()
     if not project_root.exists():
         raise click.ClickException(
             f"Project root {project_root} does not exist, use scripts/setup_rust_project.py to create it"

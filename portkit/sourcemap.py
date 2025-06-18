@@ -146,6 +146,10 @@ class SourceMap:
     """Unified source map for C and Rust symbols with dependency analysis."""
 
     def __init__(self, project_root: Path, config: "ProjectConfig"):
+        assert project_root.exists(), f"Project root {project_root} does not exist"
+        assert (
+            project_root.is_absolute()
+        ), f"Project root {project_root} is not absolute"
         self.project_root = project_root
         self.config = config
         self.c_language = Language(tsc.language())
