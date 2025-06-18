@@ -1,0 +1,30 @@
+{
+  "project_name": "zopfli",
+  "library_name": "zopfli",
+  "c_source_dir": "src/zopfli",
+  "rust_dir": "rust",
+  "rust_src_dir": "src",
+  "fuzz_dir": "fuzz",
+  "fuzz_targets_dir": "fuzz_targets",
+  "build_dependencies": {
+    "cc": "1.0",
+    "glob": "0.3"
+  },
+  "dependencies": {
+    "libc": "0.2"
+  },
+  "dev_dependencies": {
+    "proptest": "1.0",
+    "criterion": "0.5",
+    "rand": "0.8"
+  },
+  "c_files": [],
+  "include_dirs": [],
+  "compile_flags": [
+    "-Wno-unused-function"
+  ],
+  "authors": [],
+  "description": "",
+  "license": "Apache-2.0",
+  "repository": null
+}

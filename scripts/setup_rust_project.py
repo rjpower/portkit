@@ -77,6 +77,10 @@ def generate_include_directives(c_source_path: str, include_dirs: list[str]) -> 
 
 def create_main_cargo_toml(rust_root: Path, config: ProjectConfig) -> None:
     """Generate main Cargo.toml file."""
+    
+    cargo_toml_path = rust_root / "Cargo.toml"
+    if cargo_toml_path.exists():
+        return
 
     authors_str = str(config.authors) if config.authors else "[]"
     repo_line = f'repository = "{config.repository}"' if config.repository else ""
@@ -116,11 +120,15 @@ inherits = "release"
 debug = true
 """
 
-    (rust_root / "Cargo.toml").write_text(cargo_toml)
+    cargo_toml_path.write_text(cargo_toml)
 
 
 def create_fuzz_cargo_toml(fuzz_root: Path, config: ProjectConfig) -> None:
     """Generate fuzz Cargo.toml file."""
+    
+    fuzz_cargo_toml_path = fuzz_root / "Cargo.toml"
+    if fuzz_cargo_toml_path.exists():
+        return
 
     fuzz_cargo_toml = f"""[package]
 name = "{config.library_name}-fuzz"
@@ -152,11 +160,15 @@ test = false
 doc = false
 """
 
-    (fuzz_root / "Cargo.toml").write_text(fuzz_cargo_toml)
+    fuzz_cargo_toml_path.write_text(fuzz_cargo_toml)
 
 
 def create_build_rs(rust_root: Path, config: ProjectConfig) -> None:
     """Generate build.rs file."""
+    
+    build_rs_path = rust_root / "build.rs"
+    if build_rs_path.exists():
+        return
 
     c_source_path = f"../{config.c_source_dir}"
 
@@ -180,13 +192,15 @@ def create_build_rs(rust_root: Path, config: ProjectConfig) -> None:
         .compile("{config.library_name}_c");
 }}"""
 
-    (rust_root / "build.rs").write_text(build_rs)
+    build_rs_path.write_text(build_rs)
 
 
 def create_lib_rs(rust_src: Path, config: ProjectConfig) -> None:
     """Generate lib.rs file."""
-
-    lib_rs = """#![allow(non_snake_case)]
+    
+    lib_rs_path = rust_src / "lib.rs"
+    if not lib_rs_path.exists():
+        lib_rs = """#![allow(non_snake_case)]
 #![allow(dead_code)]
 #![allow(unused_variables)]
 #![allow(unused_imports)]
@@ -196,15 +210,20 @@ pub mod ffi;
 // Re-export main functionality
 pub use ffi::*;
 """
-
-    (rust_src / "lib.rs").write_text(lib_rs)
+        lib_rs_path.write_text(lib_rs)
 
     # Create empty ffi.rs
-    (rust_src / "ffi.rs").write_text("// FFI bindings will be generated here\n")
+    ffi_rs_path = rust_src / "ffi.rs"
+    if not ffi_rs_path.exists():
+        ffi_rs_path.write_text("// FFI bindings will be generated here\n")
 
 
 def create_dummy_fuzz_test(fuzz_targets: Path, config: ProjectConfig) -> None:
     """Generate dummy fuzz test."""
+    
+    dummy_fuzz_path = fuzz_targets / "fuzz_dummy.rs"
+    if dummy_fuzz_path.exists():
+        return
 
     dummy_fuzz = """#![no_main]
 use libfuzzer_sys::fuzz_target;
@@ -217,7 +236,7 @@ fuzz_target!(|data: &[u8]| {
 });
 """
 
-    (fuzz_targets / "fuzz_dummy.rs").write_text(dummy_fuzz)
+    dummy_fuzz_path.write_text(dummy_fuzz)
 
 
 def setup_project(project_root: Path, config: ProjectConfig) -> None:
