@@ -5,7 +5,7 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from portkit.tidyllm.models import ToolError
 from portkit.tidyllm.registry import REGISTRY
@@ -21,7 +21,7 @@ class FunctionLibrary:
         self,
         functions: list[Callable] | None = None,
         function_descriptions: list[FunctionDescription] | None = None,
-        context: dict[str, Any] | None = None,
+        context: Any | None = None,
         registry=None,
     ):
         """
@@ -58,28 +58,17 @@ class FunctionLibrary:
             for func_desc in self.registry.functions:
                 self._function_descriptions[func_desc.name] = func_desc
 
-    def call(self, request: dict | str) -> Any:
+    def call(self, tool_name: str, arguments: dict) -> Any:
         """
-        Execute a tool call.
+        Execute a function call with JSON arguments.
 
         Args:
-            request: JSON string or dict with 'name' and 'arguments'
+            tool_name: Name of the function to call
+            arguments: JSON dictionary of arguments
 
         Returns:
-            Tool result (any JSON-serializable value or ToolError)
+            Result from the function call
         """
-        # Parse request
-        if isinstance(request, str):
-            try:
-                request_dict = json.loads(request)
-            except json.JSONDecodeError as e:
-                return ToolError(error=f"Invalid JSON: {str(e)}")
-        else:
-            request_dict = request
-
-        tool_name = request_dict.get("name")
-        arguments = request_dict.get("arguments", {})
-
         logger.info(f"Calling tool: {tool_name} with arguments: {arguments}")
 
         # Get tool description from internal dictionary
@@ -108,15 +97,13 @@ class FunctionLibrary:
             # Validate context satisfies tool requirements
             context_type = func_desc.context_type
             if context_type:
-                # For Protocol types, check annotations instead of dir()
                 if hasattr(context_type, "__annotations__"):
                     for attr_name in context_type.__annotations__:
-                        if attr_name not in self.context:
+                        if not hasattr(self.context, attr_name):
                             error = f"Context missing required attribute: {attr_name}"
-                            logger.error(error)
+                            logger.error(error, stack_info=True)
                             return ToolError(error=error)
 
-        # Execute tool
         try:
             if needs_context:
                 # Convert dict context to object with attributes
@@ -140,7 +127,7 @@ class FunctionLibrary:
 
         except Exception as e:
             error = f"Tool execution failed: {str(e)}"
-            logger.error(error, exc_info=True)
+            logger.exception(e, stack_info=True)
             return ToolError(error=error)
 
     @property
@@ -169,7 +156,27 @@ class FunctionLibrary:
         # For Protocol types, check annotations instead of dir()
         if hasattr(context_type, "__annotations__"):
             for attr_name in context_type.__annotations__:
-                if attr_name not in self.context:
+                if not hasattr(self.context, attr_name):
                     return False
 
         return True
+
+    def call_with_tool_response(self, name: str, args: dict, id: str) -> dict:
+        """Execute a tool call, returning a tool call message with the result or error."""
+        try:
+            result = self.call(name, args)
+            if isinstance(result, BaseModel):
+                result = result.model_dump()
+
+            return {
+                "role": "tool",
+                "tool_call_id": id,
+                "content": json.dumps(result),
+            }
+        except Exception as e:
+            logger.exception(e, stack_info=True)
+            return {
+                "role": "tool",
+                "tool_call_id": id,
+                "content": json.dumps({"error": str(e), "type": type(e).__name__}),
+            }

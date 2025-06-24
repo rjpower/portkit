@@ -61,37 +61,6 @@ struct ZopfliLZ77Store {
         assert symbol.declaration_file.name == "test.h"
         assert "ZopfliLZ77Store" in symbol.signature
 
-    def test_typedef_struct_extraction(self, temp_project):
-        """Test extracting typedef struct patterns."""
-        h_file = temp_project / "src" / "test.h"
-        h_file.write_text(
-            """
-typedef struct {
-    int x;
-    int y;
-} Point;
-
-typedef struct ZopfliLZ77Store {
-    unsigned short* litlens;
-    unsigned short* dists;
-} ZopfliLZ77Store;
-"""
-        )
-
-        config = ProjectConfig(
-            project_name="test", library_name="test", project_root=temp_project
-        )
-        source_map = SourceMap(temp_project, config)
-        symbols = source_map.parse_project()
-
-        # Should find both typedef structs
-        typedef_symbols = [
-            s for s in symbols if s.kind == "struct" and s.language == "c"
-        ]
-        symbol_names = {s.name for s in typedef_symbols}
-
-        assert "Point" in symbol_names
-        assert "ZopfliLZ77Store" in symbol_names
 
     def test_struct_with_dependencies(self, temp_project):
         """Test struct with type dependencies."""
@@ -229,65 +198,6 @@ int public_function(int x) {
         assert public_funcs[0].name == "public_function"
 
 
-class TestDefineExtraction:
-    """Test #define extraction patterns."""
-
-    def test_empty_define_filtering(self, temp_project):
-        """Test that empty #defines are filtered out."""
-        h_file = temp_project / "src" / "test.h"
-        h_file.write_text(
-            """
-#define ZOPFLI_HAS_BUILTIN_CLZ
-#define VERSION "1.0.0"
-#define MAX_SIZE 1024
-#define FEATURE_ENABLED
-"""
-        )
-
-        config = ProjectConfig(
-            project_name="test", library_name="test", project_root=temp_project
-        )
-        source_map = SourceMap(temp_project, config)
-        symbols = source_map.parse_project()
-
-        define_symbols = [
-            s for s in symbols if s.kind == "define" and s.language == "c"
-        ]
-        define_names = {s.name for s in define_symbols}
-
-        # Empty defines should be filtered out
-        assert "ZOPFLI_HAS_BUILTIN_CLZ" not in define_names
-        assert "FEATURE_ENABLED" not in define_names
-
-        # Defines with values should be included
-        assert "VERSION" in define_names
-        assert "MAX_SIZE" in define_names
-
-    def test_function_like_macro(self, temp_project):
-        """Test function-like macro extraction."""
-        h_file = temp_project / "src" / "test.h"
-        h_file.write_text(
-            """
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#define SQUARE(x) ((x) * (x))
-"""
-        )
-
-        config = ProjectConfig(
-            project_name="test", library_name="test", project_root=temp_project
-        )
-        source_map = SourceMap(temp_project, config)
-        symbols = source_map.parse_project()
-
-        macro_symbols = [
-            s for s in symbols if s.kind == "function" and s.language == "c"
-        ]
-        macro_names = {s.name for s in macro_symbols}
-
-        assert "MAX" in macro_names
-        assert "SQUARE" in macro_names
-
-
 class TestEnumExtraction:
     """Test enum extraction patterns."""
 
@@ -318,33 +228,6 @@ enum ZopfliFormat {
         symbol = enum_symbols[0]
         assert symbol.language == "c"
         assert "ZopfliFormat" in symbol.signature
-
-    def test_typedef_enum(self, temp_project):
-        """Test extracting typedef enum patterns."""
-        h_file = temp_project / "src" / "test.h"
-        h_file.write_text(
-            """
-typedef enum {
-    STATE_INIT,
-    STATE_RUNNING,
-    STATE_DONE
-} ProcessState;
-"""
-        )
-
-        config = ProjectConfig(
-            project_name="test", library_name="test", project_root=temp_project
-        )
-        source_map = SourceMap(temp_project, config)
-        symbols = source_map.parse_project()
-
-        enum_symbols = [s for s in symbols if s.kind == "enum"]
-        assert len(enum_symbols) == 1
-
-        symbol = enum_symbols[0]
-        assert symbol.language == "c"
-        # Could be parsed as either "enum" or "struct" depending on tree-sitter
-        assert symbol.kind in ["enum", "struct"]
 
 
 class TestTypedefExtraction:

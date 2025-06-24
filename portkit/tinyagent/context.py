@@ -19,3 +19,4 @@ class PortKitContext(Protocol):
     read_files: set[str]
     interrupt_handler: InterruptHandler
     config: ProjectConfig
+    running_cost: float

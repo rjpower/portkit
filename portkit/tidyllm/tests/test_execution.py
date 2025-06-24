@@ -126,39 +126,27 @@ class TestToolExecution:
 
     def test_simple_arguments(self):
         """Test execution with simple argument types."""
-        request = {"name": "simple_tool", "arguments": {"name": "test", "count": 5}}
-
-        result = self.library.call(request)
+        result = self.library.call("simple_tool", {"name": "test", "count": 5})
         assert isinstance(result, SimpleResult)
         assert result.processed == "Processed test"
         assert result.count == 10
 
     def test_simple_arguments_with_defaults(self):
         """Test execution using default argument values."""
-        request = {
-            "name": "simple_tool",
-            "arguments": {"name": "default_test"},
-            # count not provided, should use default
-        }
-
-        result = self.library.call(request)
+        result = self.library.call("simple_tool", {"name": "default_test"})
         assert isinstance(result, SimpleResult)
         assert result.processed == "Processed default_test"
         assert result.count == 2  # default 1 * 2
 
     def test_complex_arguments(self):
         """Test execution with complex argument types."""
-        request = {
-            "name": "complex_tool",
-            "arguments": {
+        result = self.library.call("complex_tool", {
                 "strings": ["apple", "banana", "cherry"],
                 "mapping": {"key1": "value1", "key2": 42, "key3": [1, 2, 3]},
                 "optional_int": 100,
                 "flag": True,
             },
-        }
-
-        result = self.library.call(request)
+        )
         assert result["strings_count"] == 3
         assert set(result["mapping_keys"]) == {"key1", "key2", "key3"}
         assert result["optional_int"] == 100
@@ -166,16 +154,12 @@ class TestToolExecution:
 
     def test_complex_arguments_partial(self):
         """Test complex arguments with only required fields."""
-        request = {
-            "name": "complex_tool",
-            "arguments": {
+        result = self.library.call("complex_tool", {
                 "strings": ["single"],
                 "mapping": {"only": "one"},
                 # optional_int and flag use defaults
             },
-        }
-
-        result = self.library.call(request)
+        )
         assert result["strings_count"] == 1
         assert result["mapping_keys"] == ["only"]
         assert result["optional_int"] is None
@@ -183,16 +167,12 @@ class TestToolExecution:
 
     def test_nested_model_arguments(self):
         """Test execution with nested Pydantic models."""
-        request = {
-            "name": "nested_tool",
-            "arguments": {
+        result = self.library.call("nested_tool", {
                 "name": "nested_test",
                 "config": {"timeout": 30, "retries": 5},
                 "tags": ["tag1", "tag2"],
             },
-        }
-
-        result = self.library.call(request)
+        )
         assert result["name"] == "nested_test"
         assert result["timeout"] == 30
         assert result["retries"] == 5
@@ -200,9 +180,7 @@ class TestToolExecution:
 
     def test_nested_model_with_defaults(self):
         """Test nested model with default values."""
-        request = {
-            "name": "nested_tool",
-            "arguments": {
+        result = self.library.call("nested_tool", {
                 "name": "default_nested",
                 "config": {
                     "timeout": 15
@@ -210,9 +188,7 @@ class TestToolExecution:
                 },
                 # tags uses default
             },
-        }
-
-        result = self.library.call(request)
+        )
         assert result["name"] == "default_nested"
         assert result["timeout"] == 15
         assert result["retries"] == 3  # default value
@@ -220,48 +196,35 @@ class TestToolExecution:
 
     def test_union_type_arguments_string(self):
         """Test union type arguments with string value."""
-        request = {
-            "name": "union_tool",
-            "arguments": {"value": "string_value", "optional_data": {"key": "value"}},
-        }
-
-        result = self.library.call(request)
+        result = self.library.call("union_tool", {"value": "string_value", "optional_data": {"key": "value"}})
         assert result["value"] == "string_value"
         assert result["value_type"] == "str"
         assert result["has_optional_data"] is True
 
     def test_union_type_arguments_int(self):
         """Test union type arguments with integer value."""
-        request = {"name": "union_tool", "arguments": {"value": 42}}
-
-        result = self.library.call(request)
+        result = self.library.call("union_tool", {"value": 42})
         assert result["value"] == 42
         assert result["value_type"] == "int"
         assert result["has_optional_data"] is False
 
     def test_union_type_arguments_float(self):
         """Test union type arguments with float value."""
-        request = {"name": "union_tool", "arguments": {"value": 3.14}}
-
-        result = self.library.call(request)
+        result = self.library.call("union_tool", {"value": 3.14})
         assert result["value"] == 3.14
         assert result["value_type"] == "float"
         assert result["has_optional_data"] is False
 
     def test_tool_execution_error(self):
         """Test handling of tool execution errors."""
-        request = {"name": "error_tool", "arguments": {"name": "error", "count": 1}}
-
-        result = self.library.call(request)
+        result = self.library.call("error_tool", {"name": "error", "count": 1})
         assert isinstance(result, ToolError)
         assert "Tool execution failed" in result.error
         assert "Intentional error" in result.error
 
     def test_tool_validation_error(self):
         """Test tool that performs its own validation."""
-        request = {"name": "validation_tool", "arguments": {"name": "", "count": -1}}
-
-        result = self.library.call(request)
+        result = self.library.call("validation_tool", {"name": "", "count": -1})
         assert isinstance(result, ToolError)
         assert "Tool execution failed" in result.error
         # Should contain the validation error message
@@ -271,76 +234,51 @@ class TestToolExecution:
 
     def test_argument_validation_error(self):
         """Test Pydantic argument validation errors."""
-        request = {
-            "name": "simple_tool",
-            "arguments": {"name": "test", "count": "not_a_number"},  # Invalid type
-        }
-
-        result = self.library.call(request)
+        result = self.library.call("simple_tool", {"name": "test", "count": "not_a_number"})
         assert isinstance(result, ToolError)
         assert "Invalid arguments" in result.error
         assert result.details is not None
 
     def test_missing_required_arguments(self):
         """Test error when required arguments are missing."""
-        request = {
-            "name": "simple_tool",
-            "arguments": {
-                # Missing required 'name' field
-                "count": 5
-            },
-        }
-
-        result = self.library.call(request)
+        result = self.library.call("simple_tool", {"count": 5})
         assert isinstance(result, ToolError)
         assert "Invalid arguments" in result.error
 
     def test_extra_arguments_ignored(self):
         """Test that extra arguments are handled gracefully."""
-        request = {
-            "name": "simple_tool",
-            "arguments": {
+        result = self.library.call("simple_tool", {
                 "name": "test",
                 "count": 3,
                 "extra_field": "ignored",  # Should be ignored
             },
-        }
-
-        result = self.library.call(request)
+        )
         # Should succeed despite extra field
         assert isinstance(result, SimpleResult)
         assert result.processed == "Processed test"
 
     def test_empty_arguments(self):
         """Test tool call with empty arguments."""
-        request = {"name": "simple_tool", "arguments": {}}
-
-        result = self.library.call(request)
+        result = self.library.call("simple_tool", {})
         assert isinstance(result, ToolError)
         assert "Invalid arguments" in result.error
         # Should fail due to missing required 'name'
 
     def test_null_arguments(self):
         """Test tool call with null argument values."""
-        request = {
-            "name": "complex_tool",
-            "arguments": {
+        result = self.library.call("complex_tool", {
                 "strings": ["test"],
                 "mapping": {"key": None},  # Null value in dict
                 "optional_int": None,  # Explicitly null optional field
                 "flag": False,
             },
-        }
-
-        result = self.library.call(request)
+        )
         # Should handle null values appropriately
         assert result["optional_int"] is None
 
     def test_deeply_nested_arguments(self):
         """Test with deeply nested argument structures."""
-        request = {
-            "name": "complex_tool",
-            "arguments": {
+        result = self.library.call("complex_tool", {
                 "strings": ["nested", "test"],
                 "mapping": {
                     "level1": {"level2": {"level3": "deep_value"}},
@@ -348,9 +286,7 @@ class TestToolExecution:
                 },
                 "flag": True,
             },
-        }
-
-        result = self.library.call(request)
+        )
         assert result["strings_count"] == 2
         assert "level1" in result["mapping_keys"]
         assert "array" in result["mapping_keys"]
@@ -360,22 +296,12 @@ class TestToolExecution:
         large_list = [f"item_{i}" for i in range(1000)]
         large_dict = {f"key_{i}": f"value_{i}" for i in range(100)}
 
-        request = {
-            "name": "complex_tool",
-            "arguments": {"strings": large_list, "mapping": large_dict, "flag": True},
-        }
-
-        result = self.library.call(request)
+        result = self.library.call("complex_tool", {"strings": large_list, "mapping": large_dict, "flag": True})
         assert result["strings_count"] == 1000
         assert len(result["mapping_keys"]) == 100
 
     def test_unicode_arguments(self):
         """Test with Unicode and special characters."""
-        request = {
-            "name": "simple_tool",
-            "arguments": {"name": "测试 🚀 émojis ànd spéciål chars", "count": 1},
-        }
-
-        result = self.library.call(request)
+        result = self.library.call("simple_tool", {"name": "测试 🚀 émojis ànd spéciål chars", "count": 1})
         assert isinstance(result, SimpleResult)
         assert "测试 🚀 émojis ànd spéciål chars" in result.processed

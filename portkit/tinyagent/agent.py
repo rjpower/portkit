@@ -2,7 +2,6 @@
 
 import json
 import sys
-import traceback
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -15,12 +14,10 @@ from pydantic import BaseModel, Field
 
 from portkit.interrupt import InterruptSignal
 
-# Note: tools are now discovered dynamically from /portkit/tools/
+from portkit.tidyllm.library import FunctionLibrary
 from portkit.tinyagent.context import PortKitContext
-from portkit.tinyagent.portkit_agent import PortKitAgent
 
-DEFAULT_FUZZ_TIMEOUT = 10
-DEFAULT_MODEL = "gemini/gemini-2.5-pro-preview-06-05"
+DEFAULT_MODEL = "gemini/gemini-2.5-pro"
 MAX_LLM_CALLS = 25
 
 
@@ -59,63 +56,15 @@ class TaskStatus(BaseModel):
             return f"Progress: Task is not yet complete. The following issues were encountered:\n{errors_text}\n{diagnostics_text}"
 
 
-class ToolCallFunction(BaseModel):
-    name: str | None = None
-    arguments: str = ""
-
-
 class ToolCall(BaseModel):
-    id: str | None = None
-    type: str | None = None
-    function: ToolCallFunction = Field(default_factory=ToolCallFunction)
-
-
-class Agent:
-    """Handle tool dispatch with argument validation using TidyLLM."""
-
-    def __init__(self):
-        self._context: Any = None
-        self._portkit_agent: PortKitAgent | None = None
-
-    def set_context(self, context: Any):
-        """Set the builder context for tool execution."""
-        self._context = context
-        self._portkit_agent = PortKitAgent(context)
-
-    def run(self, tool_name: str, args_json: str, tool_call_id: str) -> dict[str, Any]:
-        """Run a tool call with JSON argument parsing and return result message."""
-        try:
-            if self._portkit_agent is None:
-                raise ValueError("No context set on Agent")
-
-            self._context.console.print(
-                f"[blue]Calling {tool_name} with args: {json.loads(args_json)}[/blue]"
-            )
-
-            tool_call = {
-                "name": tool_name,
-                "arguments": json.loads(args_json)
-            }
-            
-            result = self._portkit_agent.call_tool(tool_call)
-
-            return {
-                "role": "tool",
-                "tool_call_id": tool_call_id,
-                "content": json.dumps(result),
-            }
-        except Exception as e:
-            traceback.print_exc()
-            return {
-                "role": "tool",
-                "tool_call_id": tool_call_id,
-                "content": json.dumps({"error": str(e), "type": type(e).__name__}),
-            }
-
+    id: str = ""
+    type: str = ""
+    name: str = ""
+    arguments: str = ""
 
 async def call_with_tools(
     messages: list[dict[str, Any]],
-    agent: Agent,
+    library: FunctionLibrary,
     model: str,
     *,
     ctx: PortKitContext,
@@ -127,8 +76,8 @@ async def call_with_tools(
     logs_dir = Path("logs/litellm")
     logs_dir.mkdir(parents=True, exist_ok=True)
 
-    # Get tools from the agent's PortKit agent
-    tools_spec = agent._portkit_agent.get_schemas() if agent._portkit_agent else []
+    # Get tools from the function library
+    tools_spec = library.get_schemas()
 
     log_data = {
         "timestamp": datetime.now().isoformat(),
@@ -184,20 +133,19 @@ async def call_with_tools(
                 index = tool_call_delta.index
                 if index not in tool_calls_by_index:
                     tool_calls_by_index[index] = ToolCall(
-                        id=tool_call_delta.id,
-                        type=tool_call_delta.type,
-                        function=ToolCallFunction(),
+                        id=tool_call_delta.id or "",
+                        type=tool_call_delta.type or "",
                     )
 
                 tool_call = tool_calls_by_index[index]
 
                 # Accumulate function arguments
                 if tool_call_delta.function and tool_call_delta.function.arguments:
-                    tool_call.function.arguments += tool_call_delta.function.arguments
+                    tool_call.arguments += tool_call_delta.function.arguments
 
                 # Update name if provided
                 if tool_call_delta.function and tool_call_delta.function.name:
-                    tool_call.function.name = tool_call_delta.function.name
+                    tool_call.name = tool_call_delta.function.name
         if hasattr(chunk, "usage") and chunk.usage is not None:  # type: ignore
             usage_data = chunk.usage  # type: ignore
 
@@ -207,15 +155,10 @@ async def call_with_tools(
         completion_tokens = getattr(usage_data, "completion_tokens", 0)
         total_tokens = getattr(usage_data, "total_tokens", 0)
         cost = litellm.completion_cost(completion_response=chunk)  # type: ignore
-        if hasattr(agent._context, "running_cost"):
-            agent._context.running_cost += cost
-            ctx.console.print(
-                f"[dim]Token usage - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens} Call cost: ${cost:.4f} Running cost: ${agent._context.running_cost:.4f}[/dim]"
-            )
-        else:
-            ctx.console.print(
-                f"[dim]Token usage - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens} Call cost: ${cost:.4f}[/dim]"
-            )
+        ctx.running_cost += cost
+        ctx.console.print(
+            f"[dim]Token usage - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens} Call cost: ${cost:.4f} Running cost: ${ctx.running_cost:.4f}[/dim]"
+        )
 
     assistant_message: dict[str, Any] = {
         "role": "assistant",
@@ -244,10 +187,11 @@ async def call_with_tools(
             if message is not None:
                 raise InterruptSignal(message)
 
-            tool_name = tool_call.function.name
-            args_json = tool_call.function.arguments
+            tool_name = tool_call.name
+            args_json = tool_call.arguments
+            args = json.loads(args_json)
 
-            result_message = agent.run(tool_name, args_json, tool_call.id)
+            result_message = library.call_with_tool_response(tool_name, args, tool_call.id)
             messages.append(result_message)
 
     return messages
@@ -267,8 +211,21 @@ async def call_with_retry(
 ) -> list[dict[str, Any]]:
     """Stream completion with retry using TASK COMPLETE detection."""
 
-    agent = Agent()
-    agent.set_context(ctx)
+    def get_portkit_tools():
+        """Get all registered PortKit tools as FunctionDescription objects."""
+        from pathlib import Path
+        from portkit.tidyllm.discover import discover_tools_in_directory
+        
+        tools_dir = Path(__file__).parent.parent / "tools"
+        return discover_tools_in_directory(
+            tools_dir, 
+            recursive=True,
+        )
+
+    library = FunctionLibrary(
+        function_descriptions=get_portkit_tools(),
+        context=ctx
+    )
     ctx.read_files.clear()
 
     def _check_status(initial: bool) -> TaskStatus:
@@ -295,25 +252,7 @@ async def call_with_retry(
             f"[bold cyan]Editor call {attempt + 1} of {max_llm_calls}[/bold cyan]"
         )
 
-        # Call LLM with interrupt support
-        try:
-            messages = await call_with_tools(messages, agent, model=model, ctx=ctx)
-        except Exception as e:
-            # Check if this is an InterruptSignal
-            if e.__class__.__name__ == "InterruptSignal":
-                user_message = getattr(e, "user_message", "")
-                if user_message:
-                    messages.append({"role": "user", "content": user_message})
-                    # Recheck status after user input
-                    status = _check_status(initial=False)
-                    if not status.is_done():
-                        messages.append(
-                            {"role": "user", "content": status.get_feedback()}
-                        )
-                continue
-            else:
-                # Re-raise other exceptions
-                raise
+        messages = await call_with_tools(messages, library, model=model, ctx=ctx)
 
         # Check if LLM signaled completion or gave up
         last_message = messages[-1] if messages else {}

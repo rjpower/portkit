@@ -1,10 +1,10 @@
-"""Benchmark tests for calculator tool."""
+"""Evaluation tests for calculator tool."""
 
-from portkit.tidyllm.benchmark import benchmark_test
+from portkit.tidyllm.evaluation import evaluation_test
 from portkit.tidyllm.tools.calculator.lib import CalculatorResult
 
 
-@benchmark_test()
+@evaluation_test()
 def test_basic_addition(context):
     """Test that LLM can perform basic addition using calculator tool."""
     response = context.llm.ask("Calculate 15 + 27")
@@ -18,7 +18,7 @@ def test_basic_addition(context):
     assert result.operation == "add"
 
 
-@benchmark_test()
+@evaluation_test()
 def test_division_with_validation(context):
     """Test division calculation with result validation."""
     response = context.llm.ask("What is 84 divided by 12?")
@@ -33,7 +33,7 @@ def test_division_with_validation(context):
         assert "divide" in result.expression.lower() or "/" in result.expression
 
 
-@benchmark_test()
+@evaluation_test()
 def test_complex_word_problem(context):
     """Test calculator with a word problem requiring interpretation."""
     response = context.llm.ask(
@@ -49,7 +49,7 @@ def test_complex_word_problem(context):
     assert result.operation in ["add", "subtract", "multiply", "divide"]
 
 
-@benchmark_test()
+@evaluation_test()
 def test_negative_numbers(context):
     """Test calculator with negative number operations."""
     response = context.llm.ask("Calculate -15 + 8")
@@ -62,7 +62,7 @@ def test_negative_numbers(context):
     assert result.operation is not None
 
 
-@benchmark_test()
+@evaluation_test()
 def test_multiple_operations_choice(context):
     """Test that LLM chooses appropriate operation for different problems."""
     test_cases = [

@@ -17,14 +17,26 @@ from portkit.config import ProjectConfig
 from portkit.implfuzz import BuilderContext, generate_unified_prompt
 from portkit.sourcemap import SourceMap, Symbol
 from portkit.tinyagent.agent import (
-    Agent,
     TaskStatus,
     TaskStatusType,
 )
+from portkit.tidyllm.library import FunctionLibrary
 from portkit.tools.read_files import ReadFileRequest, read_files
 from portkit.tools.replace_file import WriteFileRequest, replace_file
 from portkit.tools.search_files import SearchRequest, SearchSpec, search_files
 # edit_code tests moved to portkit/tools/patch/test.py
+
+
+def get_portkit_tools():
+    """Get all registered PortKit tools as FunctionDescription objects."""
+    from pathlib import Path
+    from portkit.tidyllm.discover import discover_tools_in_directory
+    
+    tools_dir = Path(__file__).parent.parent / "portkit" / "tools"
+    return discover_tools_in_directory(
+        tools_dir, 
+        recursive=True,
+    )
 
 
 def create_test_context(project_root: Path) -> BuilderContext:
@@ -164,11 +176,14 @@ def test_tool_execution_success():
 
     try:
         ctx = create_test_context(Path(temp_path).parent)
-        agent = Agent()
-        agent.set_context(ctx)
+        
+        library = FunctionLibrary(
+            function_descriptions=get_portkit_tools(),
+            context=ctx
+        )
 
-        args_json = f'{{"paths": ["{Path(temp_path).name}"]}}'
-        result = agent.run("read_files", args_json, "test_id")
+        args = {"paths": [Path(temp_path).name]}
+        result = library.call_with_tool_response("read_files", args, "test_id")
 
         assert result["role"] == "tool"
         assert result["tool_call_id"] == "test_id"
@@ -180,11 +195,14 @@ def test_tool_execution_success():
 def test_tool_execution_error():
     """Test tool execution with error."""
     ctx = create_test_context(Path("/tmp"))
-    agent = Agent()
-    agent.set_context(ctx)
+    
+    library = FunctionLibrary(
+        function_descriptions=get_portkit_tools(),
+        context=ctx
+    )
 
-    args_json = '{"paths": ["nonexistent.h"]}'
-    result = agent.run("read_files", args_json, "test_id")
+    args = {"paths": ["nonexistent.h"]}
+    result = library.call_with_tool_response("read_files", args, "test_id")
 
     assert result["role"] == "tool"
     assert result["tool_call_id"] == "test_id"
@@ -197,10 +215,13 @@ def test_tool_execution_error():
 def test_unknown_tool_error():
     """Test calling unknown tool."""
     ctx = create_test_context(Path("/tmp"))
-    agent = Agent()
-    agent.set_context(ctx)
+    
+    library = FunctionLibrary(
+        function_descriptions=get_portkit_tools(),
+        context=ctx
+    )
 
-    result = agent.run("unknown_tool", "{}", "test_id")
+    result = library.call_with_tool_response("unknown_tool", {}, "test_id")
 
     content = json.loads(result["content"])
     assert "error" in content

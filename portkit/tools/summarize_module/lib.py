@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from portkit.tidyllm.llm import LiteLLMClient
+from portkit.tidyllm.llm import LiteLLMClient, LLMMessage, Role
 from portkit.tidyllm.prompt import module_dir, read_prompt
 from portkit.tidyllm.registry import register
 
@@ -224,7 +224,7 @@ def summarize_module(args: SummarizeModuleArgs) -> SummarizeModuleResult:
     # Use LiteLLM client with Gemini 2.5 Flash
     client = LiteLLMClient()
 
-    messages = [{"role": "user", "content": prompt}]
+    messages = [LLMMessage(role=Role.USER, content=prompt)]
 
     # Call Gemini 2.5 Flash with structured JSON output
     response = client.completion(
@@ -236,8 +236,11 @@ def summarize_module(args: SummarizeModuleArgs) -> SummarizeModuleResult:
         response_format={"type": "json_object"},
     )
 
-    # Extract response content - should be valid JSON due to response_format
-    content = response.get("choices", [{}])[0].get("message", {}).get("content", "")
+    # Extract response content from the assistant message
+    if not response.messages or len(response.messages) < 2:
+        raise ValueError("Invalid response structure from LLM")
+    
+    content = response.messages[-1].content
 
     if not content:
         raise ValueError("Empty response from LLM")

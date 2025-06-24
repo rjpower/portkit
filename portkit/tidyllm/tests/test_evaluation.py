@@ -1,58 +1,59 @@
-"""Tests for benchmark framework."""
+"""Tests for evaluation framework."""
 
 from unittest.mock import Mock
 
 import pytest
 
 from portkit.tidyllm import FunctionLibrary
-from portkit.tidyllm.benchmark import (
-    BenchmarkContext,
-    BenchmarkResult,
-    BenchmarkRunner,
-    benchmark_test,
-    run_benchmarks,
+from portkit.tidyllm.evaluation import (
+    EvaluationContext,
+    EvaluationResult,
+    EvaluationRunner,
+    evaluation_test,
+    run_evaluations,
 )
-from portkit.tidyllm.llm import LLMHelper, LLMResponse, MockLLMClient
+from portkit.tidyllm.llm import LLMHelper, LLMMessage, LLMResponse, MockLLMClient, Role, ToolCall
 from portkit.tidyllm.tools.calculator import calculator
 
 
-class TestBenchmarkDecorator:
-    """Test the @benchmark_test decorator."""
+class TestEvaluationDecorator:
+    """Test the @evaluation_test decorator."""
 
     def test_decorator_marks_function(self):
         """Test that decorator properly marks functions."""
 
-        @benchmark_test()
+        @evaluation_test()
         def test_func():
             pass
 
-        assert hasattr(test_func, "__benchmark_test__")
-        assert test_func.__benchmark_test__ is True
-        assert test_func.__benchmark_timeout__ == 30
+        assert hasattr(test_func, "__evaluation_test__")
+        assert test_func.__evaluation_test__ is True
+        assert test_func.__evaluation_timeout__ == 30
 
     def test_decorator_with_custom_timeout(self):
         """Test decorator with custom timeout."""
 
-        @benchmark_test(timeout_seconds=60)
+        @evaluation_test(timeout_seconds=60)
         def test_func():
             pass
 
-        assert test_func.__benchmark_timeout__ == 60
+        assert test_func.__evaluation_timeout__ == 60
 
 
-class TestBenchmarkContext:
-    """Test benchmark context and assertions."""
+class TestEvaluationContext:
+    """Test evaluation context and assertions."""
 
     def setup_method(self):
         """Set up test context."""
         library = FunctionLibrary(functions=[calculator])
         client = MockLLMClient()
         llm = LLMHelper("mock-model", library, client)
-        self.context = BenchmarkContext(llm)
+        self.context = EvaluationContext(llm)
 
     def test_assert_tool_called_success(self):
         """Test successful tool assertion."""
-        response = LLMResponse(success=True, tool_called="calculator", tool_result=Mock())
+        tool_call = ToolCall(tool_name="calculator", tool_args={}, tool_result=Mock())
+        response = LLMResponse(messages=[], tool_calls=[tool_call])
 
         self.context.assert_tool_called(response, "calculator")
         assert self.context._assertions_passed == 1
@@ -60,7 +61,8 @@ class TestBenchmarkContext:
 
     def test_assert_tool_called_failure(self):
         """Test failed tool assertion."""
-        response = LLMResponse(success=True, tool_called="wrong_tool", tool_result=Mock())
+        tool_call = ToolCall(tool_name="wrong_tool", tool_args={}, tool_result=Mock())
+        response = LLMResponse(messages=[], tool_calls=[tool_call])
 
         with pytest.raises(AssertionError, match="Expected tool 'calculator'"):
             self.context.assert_tool_called(response, "calculator")
@@ -70,18 +72,15 @@ class TestBenchmarkContext:
 
     def test_assert_success(self):
         """Test success assertion."""
-        response = LLMResponse(success=True)
+        response = LLMResponse(messages=[], tool_calls=[])
         self.context.assert_success(response)
 
         assert self.context._assertions_passed == 1
 
-        response_fail = LLMResponse(success=False, error_message="Test error")
-        with pytest.raises(AssertionError, match="LLM response failed"):
-            self.context.assert_success(response_fail)
-
     def test_assert_result_contains(self):
         """Test result contains assertion."""
-        response = LLMResponse(success=True, tool_result="Hello World")
+        tool_call = ToolCall(tool_name="test", tool_args={}, tool_result="Hello World")
+        response = LLMResponse(messages=[], tool_calls=[tool_call])
 
         self.context.assert_result_contains(response, "World")
         assert self.context._assertions_passed == 1
@@ -91,7 +90,8 @@ class TestBenchmarkContext:
 
     def test_assert_result_equals(self):
         """Test result equals assertion."""
-        response = LLMResponse(success=True, tool_result=42)
+        tool_call = ToolCall(tool_name="test", tool_args={}, tool_result=42)
+        response = LLMResponse(messages=[], tool_calls=[tool_call])
 
         self.context.assert_result_equals(response, 42)
         assert self.context._assertions_passed == 1
@@ -100,27 +100,27 @@ class TestBenchmarkContext:
             self.context.assert_result_equals(response, 100)
 
 
-class TestBenchmarkRunner:
-    """Test benchmark runner functionality."""
+class TestEvaluationRunner:
+    """Test evaluation runner functionality."""
 
     def setup_method(self):
         """Set up test runner."""
         library = FunctionLibrary(functions=[calculator])
-        self.runner = BenchmarkRunner(library)
+        self.runner = EvaluationRunner(library)
 
     def test_discover_tests(self):
         """Test test discovery from modules."""
-        # Create a mock module with benchmark tests
+        # Create a mock module with evaluation tests
         mock_module = Mock()
 
-        @benchmark_test()
+        @evaluation_test()
         def test_func1():
             pass
 
         def regular_func():
             pass
 
-        @benchmark_test()
+        @evaluation_test()
         def test_func2():
             pass
 
@@ -149,14 +149,14 @@ class TestBenchmarkRunner:
     def test_run_test_success(self):
         """Test successful test execution."""
 
-        @benchmark_test()
+        @evaluation_test()
         def test_success(context):
             # This should succeed with mock client
             pass
 
         result = self.runner.run_test(test_success, "mock", use_mock=True)
 
-        assert isinstance(result, BenchmarkResult)
+        assert isinstance(result, EvaluationResult)
         assert result.success is True
         assert result.test_name == "test_success"
         assert result.duration_ms >= 0
@@ -165,13 +165,13 @@ class TestBenchmarkRunner:
     def test_run_test_failure(self):
         """Test failed test execution."""
 
-        @benchmark_test()
+        @evaluation_test()
         def test_failure():
             raise ValueError("Test error")
 
         result = self.runner.run_test(test_failure, "mock", use_mock=True)
 
-        assert isinstance(result, BenchmarkResult)
+        assert isinstance(result, EvaluationResult)
         assert result.success is False
         assert result.test_name == "test_failure"
         assert result.error_message and "Test error" in result.error_message
@@ -179,7 +179,7 @@ class TestBenchmarkRunner:
     def test_run_test_with_context(self):
         """Test running test that expects context parameter."""
 
-        @benchmark_test()
+        @evaluation_test()
         def test_with_context(context):
             assert context is not None
             assert hasattr(context, "llm")
@@ -190,7 +190,7 @@ class TestBenchmarkRunner:
     def test_run_test_without_context(self):
         """Test running test that doesn't expect context."""
 
-        @benchmark_test()
+        @evaluation_test()
         def test_without_context():
             # Just a simple test without context parameter
             assert True
@@ -201,15 +201,15 @@ class TestBenchmarkRunner:
     def test_run_tests_multiple(self):
         """Test running multiple tests."""
 
-        @benchmark_test()
+        @evaluation_test()
         def test1():
             pass
 
-        @benchmark_test()
+        @evaluation_test()
         def test2():
             pass
 
-        @benchmark_test()
+        @evaluation_test()
         def test_fail():
             raise RuntimeError("Intentional failure")
 
@@ -223,17 +223,17 @@ class TestBenchmarkRunner:
         assert failed == 1
 
 
-class TestBenchmarkIntegration:
-    """Integration tests for the full benchmark system."""
+class TestEvaluationIntegration:
+    """Integration tests for the full evaluation system."""
 
-    def test_run_benchmarks_with_modules(self):
-        """Test running benchmarks with provided modules."""
+    def test_run_evaluations_with_modules(self):
+        """Test running evaluations with provided modules."""
         library = FunctionLibrary(functions=[calculator])
 
         # Create mock module with tests
         mock_module = Mock()
 
-        @benchmark_test()
+        @evaluation_test()
         def integration_test():
             assert True
 
@@ -246,7 +246,7 @@ class TestBenchmarkIntegration:
         builtins.dir = lambda x: list(x.__dict__.keys())
 
         try:
-            results = run_benchmarks(
+            results = run_evaluations(
                 function_library=library,
                 model="mock",
                 test_modules=[mock_module],
@@ -259,8 +259,8 @@ class TestBenchmarkIntegration:
         finally:
             builtins.dir = original_dir
 
-    def test_run_benchmarks_no_tests(self):
-        """Test running benchmarks when no tests are found."""
+    def test_run_evaluations_no_tests(self):
+        """Test running evaluations when no tests are found."""
         library = FunctionLibrary(functions=[calculator])
         mock_module = Mock()
         mock_module.__dict__ = {}
@@ -271,7 +271,7 @@ class TestBenchmarkIntegration:
         builtins.dir = lambda x: list(x.__dict__.keys())
 
         try:
-            results = run_benchmarks(
+            results = run_evaluations(
                 function_library=library,
                 model="mock",
                 test_modules=[mock_module],
@@ -282,10 +282,10 @@ class TestBenchmarkIntegration:
         finally:
             builtins.dir = original_dir
 
-    def test_run_benchmarks_no_tests_found(self):
+    def test_run_evaluations_no_tests_found(self):
         """Test when no tests are found."""
         library = FunctionLibrary(functions=[calculator])
 
-        results = run_benchmarks(function_library=library, model="mock", mock_client=True)
+        results = run_evaluations(function_library=library, model="mock", mock_client=True)
 
         assert len(results) == 0

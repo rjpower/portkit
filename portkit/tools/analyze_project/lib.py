@@ -9,7 +9,7 @@ from typing import Any
 import yaml
 from tqdm.asyncio import tqdm
 
-from portkit.tidyllm.llm import LiteLLMClient
+from portkit.tidyllm.llm import LiteLLMClient, LLMMessage, Role
 from portkit.tools.summarize_module.lib import SummarizeModuleArgs, summarize_module
 
 from .models import (
@@ -58,7 +58,7 @@ async def identify_modules(
     # Use LiteLLM client with Gemini 2.5 Flash
     client = LiteLLMClient()
 
-    messages = [{"role": "user", "content": prompt}]
+    messages = [LLMMessage(role=Role.USER, content=prompt)]
 
     response = client.completion(
         model="gemini/gemini-2.5-flash",
@@ -70,7 +70,10 @@ async def identify_modules(
     )
 
     # Extract and parse response
-    content = response.get("choices", [{}])[0].get("message", {}).get("content", "")
+    if not response.messages or len(response.messages) < 2:
+        raise ValueError("Invalid response structure from LLM")
+    
+    content = response.messages[-1].content
     if not content:
         raise ValueError("Empty response from LLM during module identification")
 
@@ -223,7 +226,7 @@ async def generate_project_summary(
     # Use LiteLLM client
     client = LiteLLMClient()
 
-    messages = [{"role": "user", "content": prompt}]
+    messages = [LLMMessage(role=Role.USER, content=prompt)]
 
     response = client.completion(
         model="gemini/gemini-2.5-flash",
@@ -234,7 +237,10 @@ async def generate_project_summary(
     )
 
     # Extract response content
-    content = response.get("choices", [{}])[0].get("message", {}).get("content", "")
+    if not response.messages or len(response.messages) < 2:
+        raise ValueError("Invalid response structure from LLM")
+    
+    content = response.messages[-1].content
     if not content:
         raise ValueError("Empty response from LLM during project summary generation")
 

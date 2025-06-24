@@ -184,34 +184,3 @@ int add_points(point_t* a, point_t* b);
         # Should return ToolError for validation failure
         assert hasattr(result, "error")
         assert "paths" in result.error.lower()
-
-    def test_real_xpath_header(self):
-        """Test with actual xpath.h if available."""
-        xpath_h = Path("/Users/power/code/portkit/libxml2/include/libxml/xpath.h")
-
-        if not xpath_h.exists():
-            pytest.skip("xpath.h not available for testing")
-
-        library = FunctionLibrary(functions=[summarize_module])
-
-        try:
-            result = library.call(
-                {
-                    "name": "summarize_module",
-                    "arguments": {"paths": [str(xpath_h)]},
-                }
-            )
-
-            if hasattr(result, "error"):
-                pytest.skip(f"LLM analysis failed: {result.error}")
-            else:
-                assert isinstance(result, SummarizeModuleResult)
-                assert "xpath" in result.module_name.lower()
-                assert result.analyzed_files == ["xpath.h"]
-
-                # Should find key XPath structures
-                struct_names = [s.name for s in result.key_structures]
-                assert any("xpath" in name.lower() for name in struct_names)
-
-        except Exception as e:
-            pytest.skip(f"Real file test failed: {e}")

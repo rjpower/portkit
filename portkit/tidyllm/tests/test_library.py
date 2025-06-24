@@ -73,10 +73,18 @@ def ctx_registry():
     return registry
 
 
+class LibTestContextImpl:
+    """Test context implementation."""
+    
+    def __init__(self, project_root: str, debug: bool):
+        self.project_root = project_root
+        self.debug = debug
+
+
 @pytest.fixture
 def tool_context():
     """Create a test context for tools."""
-    return {"project_root": "/test/project", "debug": True}
+    return LibTestContextImpl(project_root="/test/project", debug=True)
 
 
 def test_library_initialization(ctx_registry, tool_context):
@@ -118,12 +126,7 @@ def test_call_with_dict_request(ctx_registry, tool_context):
         functions=[lib_test_tool_two], context=tool_context, registry=ctx_registry
     )
 
-    request = {
-        "name": "lib_test_tool_two",
-        "arguments": {"name": "test", "value": 5},
-    }
-
-    result = library.call(request)
+    result = library.call("lib_test_tool_two", {"name": "test", "value": 5})
     assert isinstance(result, LibTestResult)
     assert result.message == "Tool two processed test"
     assert result.computed == 105
@@ -135,11 +138,7 @@ def test_call_with_json_string_request(ctx_registry, tool_context):
         functions=[lib_test_tool_two], context=tool_context, registry=ctx_registry
     )
 
-    request = json.dumps(
-        {"name": "lib_test_tool_two", "arguments": {"name": "test", "value": 5}}
-    )
-
-    result = library.call(request)
+    result = library.call("lib_test_tool_two", {"name": "test", "value": 5})
     assert isinstance(result, LibTestResult)
     assert result.message == "Tool two processed test"
     assert result.computed == 105
@@ -151,12 +150,7 @@ def test_call_with_context_tool(ctx_registry, tool_context):
         functions=[lib_test_tool_one], context=tool_context, registry=ctx_registry
     )
 
-    request = {
-        "name": "lib_test_tool_one",
-        "arguments": {"name": "context_test", "value": 3},
-    }
-
-    result = library.call(request)
+    result = library.call("lib_test_tool_one", {"name": "context_test", "value": 3})
     assert isinstance(result, LibTestResult)
     assert result.message == "Tool one processed context_test"
     assert result.computed == 6
@@ -166,9 +160,7 @@ def test_call_nonexistent_tool(ctx_registry, tool_context):
     """Test calling non-existent tool."""
     library = FunctionLibrary(functions=[], context=tool_context, registry=ctx_registry)
 
-    request = {"name": "nonexistent_tool", "arguments": {}}
-
-    result = library.call(request)
+    result = library.call("nonexistent_tool", {})
     assert isinstance(result, ToolError)
     assert "Tool 'nonexistent_tool' not found" in result.error
 
@@ -179,12 +171,7 @@ def test_call_invalid_arguments(ctx_registry, tool_context):
         functions=[lib_test_tool_two], context=tool_context, registry=ctx_registry
     )
 
-    request = {
-        "name": "lib_test_tool_two",
-        "arguments": {"invalid_field": "test"},  # Missing required 'name'
-    }
-
-    result = library.call(request)
+    result = library.call("lib_test_tool_two", {"invalid_field": "test"})
     assert isinstance(result, ToolError)
     assert "Invalid arguments" in result.error
     assert result.details is not None
@@ -196,12 +183,7 @@ def test_call_tool_execution_failure(ctx_registry, tool_context):
         functions=[lib_failing_tool], context=tool_context, registry=ctx_registry
     )
 
-    request = {
-        "name": "lib_failing_tool",
-        "arguments": {"name": "test", "value": 1},
-    }
-
-    result = library.call(request)
+    result = library.call("lib_failing_tool", {"name": "test", "value": 1})
     assert isinstance(result, ToolError)
     assert "Tool execution failed" in result.error
 
@@ -250,7 +232,12 @@ def test_validate_context_success(ctx_registry, tool_context):
 
 def test_validate_context_missing_attribute():
     """Test context validation failure."""
-    incomplete_context = {"project_root": "/test"}  # Missing 'debug'
+    class IncompleteContext:
+        def __init__(self, project_root: str):
+            self.project_root = project_root
+            # Missing debug attribute
+    
+    incomplete_context = IncompleteContext(project_root="/test")
 
     library = FunctionLibrary(
         functions=[lib_test_tool_one],
@@ -292,19 +279,19 @@ def test_call_missing_args_model(tool_context):
 
 def test_context_validation_in_call():
     """Test that context validation happens during call."""
-    incomplete_context = {"project_root": "/test"}  # Missing 'debug'
+    class IncompleteContext:
+        def __init__(self, project_root: str):
+            self.project_root = project_root
+            # Missing debug attribute
+    
+    incomplete_context = IncompleteContext(project_root="/test")
 
     library = FunctionLibrary(
         functions=[lib_test_tool_one],
         context=incomplete_context,
     )
 
-    request = {
-        "name": "lib_test_tool_one",
-        "arguments": {"name": "test", "value": 1},
-    }
-
-    result = library.call(request)
+    result = library.call("lib_test_tool_one", {"name": "test", "value": 1})
     assert isinstance(result, ToolError)
     assert "Context missing required attribute" in result.error
 
@@ -318,12 +305,7 @@ def test_empty_context(ctx_registry):
 
     assert library.context == {}
 
-    request = {
-        "name": "lib_test_tool_two",
-        "arguments": {"name": "test", "value": 1},
-    }
-
-    result = library.call(request)
+    result = library.call("lib_test_tool_two", {"name": "test", "value": 1})
     assert isinstance(result, LibTestResult)
 
 
@@ -335,12 +317,7 @@ def test_call_multi_parameter_tool(ctx_registry, tool_context):
         registry=ctx_registry,
     )
 
-    request = {
-        "name": "lib_multi_param_tool",
-        "arguments": {"name": "test", "count": 5, "enabled": False},
-    }
-
-    result = library.call(request)
+    result = library.call("lib_multi_param_tool", {"name": "test", "count": 5, "enabled": False})
     assert result == {"name": "test", "count": 5, "enabled": False}
 
 
@@ -352,12 +329,7 @@ def test_call_multi_parameter_with_defaults(ctx_registry, tool_context):
         registry=ctx_registry,
     )
 
-    request = {
-        "name": "lib_multi_param_tool",
-        "arguments": {"name": "test", "count": 3},  # enabled uses default
-    }
-
-    result = library.call(request)
+    result = library.call("lib_multi_param_tool", {"name": "test", "count": 3})
     assert result == {"name": "test", "count": 3, "enabled": True}
 
 
@@ -367,10 +339,5 @@ def test_call_single_primitive_parameter(ctx_registry, tool_context):
         functions=[lib_primitive_tool], context=tool_context, registry=ctx_registry
     )
 
-    request = {
-        "name": "lib_primitive_tool",
-        "arguments": {"message": "hello world"},
-    }
-
-    result = library.call(request)
+    result = library.call("lib_primitive_tool", {"message": "hello world"})
     assert result == {"processed": "HELLO WORLD"}

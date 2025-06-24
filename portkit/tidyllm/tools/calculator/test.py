@@ -176,10 +176,7 @@ class TestCalculatorIntegration:
 
         # Execute through library
         result = library.call(
-            {
-                "name": "calculator",
-                "arguments": {"operation": "multiply", "left": 6, "right": 7},
-            }
+            "calculator", {"operation": "multiply", "left": 6, "right": 7}
         )
 
         assert isinstance(result, CalculatorResult)
@@ -193,10 +190,7 @@ class TestCalculatorIntegration:
         library = FunctionLibrary(functions=[calculator])
 
         result = library.call(
-            {
-                "name": "calculator",
-                "arguments": {"operation": "divide", "left": 5, "right": 0},
-            }
+            "calculator", {"operation": "divide", "left": 5, "right": 0}
         )
 
         assert isinstance(result, ToolError)
@@ -210,14 +204,7 @@ class TestCalculatorIntegration:
 
         # Missing required argument
         result = library.call(
-            {
-                "name": "calculator",
-                "arguments": {
-                    "operation": "add",
-                    "left": 5,
-                    # Missing 'right'
-                },
-            }
+            "calculator", {"operation": "add", "left": 5}
         )
 
         # Should return ToolError due to validation failure

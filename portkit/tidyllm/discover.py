@@ -39,7 +39,7 @@ def discover_tools_in_directory(
     import inspect
 
     if exclude_patterns is None:
-        exclude_patterns = ["test_*", "*_test.py", "__pycache__", "*.pyc"]
+        exclude_patterns=["test_*.py", "__pycache__", "*.pyc", "tests/", "__main__.py"]
 
     # Find Python files to discover
     if recursive:

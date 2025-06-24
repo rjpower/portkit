@@ -36,6 +36,14 @@ class ProjectContext(Protocol):
     dry_run: bool
 
 
+class TestContext:
+    """Test context implementation."""
+    
+    def __init__(self, project_root: Path, dry_run: bool):
+        self.project_root = project_root
+        self.dry_run = dry_run
+
+
 class TestEndToEndIntegration:
     """Test complete end-to-end workflows."""
 
@@ -72,17 +80,12 @@ class TestEndToEndIntegration:
 
         # Create library with context
         with TemporaryDirectory() as tmpdir:
-            context = {"project_root": Path(tmpdir), "dry_run": False}
+            context = TestContext(project_root=Path(tmpdir), dry_run=False)
 
             library = FunctionLibrary(functions=[write_file], context=context)
 
             # Execute tool call
-            request = {
-                "name": "write_file",
-                "arguments": {"path": "test.txt", "content": "Hello, world!"},
-            }
-
-            result = library.call(request)
+            result = library.call("write_file", {"path": "test.txt", "content": "Hello, world!"})
 
             assert isinstance(result, FileResult)
             assert result.success is True
@@ -123,27 +126,21 @@ class TestEndToEndIntegration:
             return FileResult(success=True, path=args.path, message=f"Wrote file {args.path}")
 
         with TemporaryDirectory() as tmpdir:
-            context = {"project_root": Path(tmpdir), "dry_run": False}
+            context = TestContext(project_root=Path(tmpdir), dry_run=False)
 
             library = FunctionLibrary(functions=[create_dir, write_file], context=context)
 
             # Step 1: Create directory
-            dir_request = {"name": "create_dir", "arguments": {"path": "subdir"}}
-
-            dir_result = library.call(dir_request)
+            dir_result = library.call("create_dir", {"path": "subdir"})
             assert isinstance(dir_result, FileResult)
             assert dir_result.success is True
 
             # Step 2: Write file in that directory
-            file_request = {
-                "name": "write_file",
-                "arguments": {
-                    "path": "subdir/config.json",
-                    "content": '{"setting": "value"}',
-                },
-            }
+            file_result = library.call(
+                "write_file",
+                {"path": "subdir/config.json", "content": '{"setting": "value"}'},
+            )
 
-            file_result = library.call(file_request)
             assert isinstance(file_result, FileResult)
             assert file_result.success is True
 
@@ -223,26 +220,16 @@ A result object indicating success or failure."""
 
             return FileResult(success=True, path=args.path, message="Success")
 
-        context = {"project_root": Path("/tmp"), "dry_run": False}
+        context = TestContext(project_root=Path("/tmp"), dry_run=False)
         library = FunctionLibrary(functions=[failing_tool], context=context)
 
         # Test successful call
-        success_request = {
-            "name": "failing_tool",
-            "arguments": {"path": "success", "content": "test"},
-        }
-
-        success_result = library.call(success_request)
+        success_result = library.call("failing_tool", {"path": "success", "content": "test"})
         assert isinstance(success_result, FileResult)
         assert success_result.success is True
 
         # Test failing call
-        fail_request = {
-            "name": "failing_tool",
-            "arguments": {"path": "fail", "content": "test"},
-        }
-
-        fail_result = library.call(fail_request)
+        fail_result = library.call("failing_tool", {"path": "fail", "content": "test"})
         assert isinstance(fail_result, ToolError)
         assert "Tool execution failed" in fail_result.error
         assert "Intentional failure" in fail_result.error
@@ -260,26 +247,26 @@ A result object indicating success or failure."""
             )
 
         # Test with complete context
-        complete_context = {"project_root": Path("/test"), "dry_run": True}
+        complete_context = TestContext(project_root=Path("/test"), dry_run=True)
 
         library = FunctionLibrary(functions=[context_tool], context=complete_context)
 
-        request = {
-            "name": "context_tool",
-            "arguments": {"path": "test.txt", "content": "test"},
-        }
-
-        result = library.call(request)
+        result = library.call("context_tool", {"path": "test.txt", "content": "test"})
         assert isinstance(result, FileResult)
         assert result.success is True
         assert "Dry run: True" in result.message
 
         # Test with incomplete context
-        incomplete_context = {"project_root": Path("/test")}  # Missing dry_run
+        class IncompleteContext:
+            def __init__(self, project_root: Path):
+                self.project_root = project_root
+                # Missing dry_run attribute
+
+        incomplete_context = IncompleteContext(project_root=Path("/test"))
 
         library_incomplete = FunctionLibrary(functions=[context_tool], context=incomplete_context)
 
-        result_incomplete = library_incomplete.call(request)
+        result_incomplete = library_incomplete.call("context_tool", {"path": "test.txt", "content": "test"})
         assert isinstance(result_incomplete, ToolError)
         assert "Context missing required attribute" in result_incomplete.error
 
@@ -287,7 +274,7 @@ A result object indicating success or failure."""
         """Test that schema generation works end-to-end."""
 
         @register()
-        def complex_tool(args: FileArgs, *, ctx: ProjectContext) -> FileResult:
+        def complex_tool(args: FileArgs) -> FileResult:
             """Complex tool with detailed schema."""
             return FileResult(success=True, path=args.path, message="OK")
 
@@ -348,7 +335,7 @@ A result object indicating success or failure."""
             )
 
             @register(doc=read_prompt(str(main_prompt)))
-            def include_tool(args: FileArgs, *, ctx: ProjectContext) -> FileResult:
+            def include_tool(args: FileArgs) -> FileResult:
                 """Tool with complex prompt."""
                 return FileResult(success=True, path=args.path, message="Included")
 

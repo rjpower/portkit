@@ -5,10 +5,18 @@ import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, cast
 
 import litellm
 import litellm.types.utils
+
+
+class Role(Enum):
+    SYSTEM = "system"
+    USER = "user"
+    ASSISTANT = "assistant"
+    TOOL = "tool"
 
 
 @dataclass
@@ -16,30 +24,74 @@ class ToolCall:
     tool_name: str
     tool_args: dict[str, Any]
     tool_result: Any
+    id: str | None = None
+
+
+@dataclass
+class LLMMessage:
+    role: Role
+    content: str
+    tool_calls: list[ToolCall] = field(default_factory=list)
+    tool_call_id: str | None = None
 
 
 @dataclass
 class LLMResponse:
     """Response from LLM with tool calling details."""
 
-    success: bool
-    tool_calls: list[ToolCall] = field(default_factory=list)
-    error_message: str | None = None
+    messages: list[LLMMessage]
+    tool_calls: list[ToolCall]
     response_time_ms: int = 0
     raw_response: dict | None = None
+
+
+def _llm_messages_to_dicts(messages: list[LLMMessage]) -> list[dict]:
+    """Convert LLMMessage objects to dict format for LiteLLM."""
+    result = []
+
+    for msg in messages:
+        msg_dict: dict[str, Any] = {"role": msg.role.value, "content": msg.content}
+
+        if msg.tool_calls:
+            # Convert tool calls to LiteLLM format
+            msg_dict["tool_calls"] = []
+            for tc in msg.tool_calls:
+                # Use the tool call's stored ID if available
+                tc_dict = {
+                    "type": "function",
+                    "function": {"name": tc.tool_name, "arguments": json.dumps(tc.tool_args)},
+                }
+                # Add ID if we have one stored
+                if hasattr(tc, "id") and tc.id:
+                    tc_dict["id"] = tc.id
+                msg_dict["tool_calls"].append(tc_dict)
+
+        if msg.tool_call_id:
+            msg_dict["tool_call_id"] = msg.tool_call_id
+
+        result.append(msg_dict)
+
+    return result
 
 
 class LLMClient(ABC):
     """Abstract interface for LLM clients."""
 
     @abstractmethod
-    def completion(self, model: str, messages: list[dict], tools: list[dict], **kwargs) -> dict:
-        """Get completion with tool calling support."""
-        pass
+    def completion(
+        self, model: str, messages: list[LLMMessage], tools: list[dict], **kwargs
+    ) -> LLMResponse:
+        """Get completion with tool calling support.
 
-    @abstractmethod
-    def list_models(self) -> list[str]:
-        """List available models for testing."""
+        Args:
+            model: Model name
+            messages: List of LLMMessage objects
+            tools: Tool schemas
+            **kwargs: Additional arguments
+
+        Returns:
+            LLMResponse with processed results
+        """
         pass
 
 
@@ -49,14 +101,15 @@ class LiteLLMClient(LLMClient):
     def completion(
         self,
         model: str,
-        messages: list[dict],
+        messages: list[LLMMessage],
         tools: list[dict],
         temperature: float = 0.1,
         timeout_seconds: int = 30,
         print_output: bool = False,
         **kwargs,
-    ) -> dict:
+    ) -> LLMResponse:
         """Get completion using LiteLLM with streaming."""
+        start_time = time.time()
 
         if print_output:
             _write = lambda content: print(content, end="", flush=True)
@@ -65,10 +118,12 @@ class LiteLLMClient(LLMClient):
 
         _write("Starting LLM request...\n")
 
+        message_dicts = _llm_messages_to_dicts(messages)
+
         # Use streaming mode like tinyagent
         response = litellm.completion(
             model=model,
-            messages=messages,
+            messages=message_dicts,
             tools=tools,
             temperature=temperature,
             timeout=timeout_seconds,
@@ -119,7 +174,7 @@ class LiteLLMClient(LLMClient):
                 usage_data = chunk.usage  # type: ignore
 
         # Convert to standard format
-        assistant_message = {"role": "assistant", "content": "".join(content_parts)}
+        assistant_message: dict[str, Any] = {"role": "assistant", "content": "".join(content_parts)}
 
         # Convert tool calls to list format
         tool_calls = [tool_calls_by_index[i] for i in sorted(tool_calls_by_index.keys())]
@@ -127,25 +182,37 @@ class LiteLLMClient(LLMClient):
         if tool_calls:
             assistant_message["tool_calls"] = tool_calls
 
-        # Return in the format expected by the rest of the code
-        return {"choices": [{"message": assistant_message}], "usage": usage_data}
+        # Create assistant message and add tool calls
+        assistant_msg = LLMMessage(role=Role.ASSISTANT, content="".join(content_parts))
 
-    def list_models(self) -> list[str]:
-        """List commonly available models."""
-        return [
-            "gpt-4",
-            "gpt-4-turbo",
-            "gpt-3.5-turbo",
-            "claude-3-sonnet",
-            "claude-3-haiku",
-            "claude-3-opus",
-        ]
+        # Convert tool calls to ToolCall objects
+        processed_tool_calls = []
+        if tool_calls:
+            for tc in tool_calls:
+                tool_name = tc["function"]["name"]
+                tool_args = json.loads(tc["function"]["arguments"])
+                processed_tool_calls.append(
+                    ToolCall(
+                        tool_name=tool_name, tool_args=tool_args, tool_result=None, id=tc.get("id")
+                    )
+                )
+            assistant_msg.tool_calls = processed_tool_calls
+
+        response_messages = messages + [assistant_msg]
+        response_time = int((time.time() - start_time) * 1000)
+
+        return LLMResponse(
+            messages=response_messages,
+            tool_calls=processed_tool_calls,
+            response_time_ms=response_time,
+            raw_response={"choices": [{"message": assistant_message}], "usage": usage_data},
+        )
 
 
 class MockLLMClient(LLMClient):
     """Mock LLM client for testing."""
 
-    def __init__(self, mock_responses: dict[str, dict] = None):
+    def __init__(self, mock_responses: dict[str, dict] | None = None):
         """Initialize with mock responses.
 
         Args:
@@ -153,13 +220,13 @@ class MockLLMClient(LLMClient):
         """
         self.mock_responses = mock_responses or {}
 
-    def completion(self, model: str, messages: list[dict], tools: list[dict], **kwargs) -> dict:
+    def completion(
+        self, model: str, messages: list[LLMMessage], tools: list[dict], **kwargs
+    ) -> LLMResponse:
         """Return mock response based on prompt."""
-        prompt = messages[-1]["content"] if messages else ""
-
-        # Return pre-configured response or default
-        if prompt in self.mock_responses:
-            return self.mock_responses[prompt]
+        # Create assistant response
+        assistant_msg = LLMMessage(role=Role.ASSISTANT, content="")
+        processed_tool_calls = []
 
         # Default response calls tool based on prompt keywords or first available
         if tools:
@@ -167,34 +234,20 @@ class MockLLMClient(LLMClient):
             selected_tool = next((t for t in tools if t["function"]["name"] == tool_name), tools[0])
             default_args = selected_tool["function"]["arguments"]
 
-            return {
-                "choices": [
-                    {
-                        "message": {
-                            "tool_calls": [
-                                {
-                                    "id": "mock_call_1",
-                                    "function": {
-                                        "name": tool_name,
-                                        "arguments": json.dumps(default_args),
-                                    },
-                                }
-                            ]
-                        }
-                    }
-                ]
-            }
+            tool_call = ToolCall(
+                tool_name=tool_name, tool_args=default_args, tool_result=None, id="mock_call_1"
+            )
+            processed_tool_calls.append(tool_call)
+            assistant_msg.tool_calls = [tool_call]
+        else:
+            # No tools available - just return text response
+            assistant_msg.content = "I don't have access to any tools to help with that."
 
-        # No tools available - just return text response
-        return {
-            "choices": [
-                {"message": {"content": "I don't have access to any tools to help with that."}}
-            ]
-        }
+        response_messages = messages + [assistant_msg]
 
-    def list_models(self) -> list[str]:
-        """List mock models."""
-        return ["mock-gpt-4", "mock-claude"]
+        return LLMResponse(
+            messages=response_messages, tool_calls=processed_tool_calls, response_time_ms=0
+        )
 
 
 class LLMHelper:
@@ -205,7 +258,7 @@ class LLMHelper:
         model: str,
         function_library,
         llm_client: LLMClient,
-        default_system_prompt: str = "You are a helpful assistant with access to tools.",
+        default_system_prompt: str = "You are a helpful assistant with access to tools. Always use the appropriate tool to complete the user's request. For patching or modifying text, use the patch_file tool.",
     ):
         """Initialize LLM helper.
 
@@ -222,7 +275,7 @@ class LLMHelper:
 
     def ask(
         self,
-        prompt: str,
+        prompt: str | list[LLMMessage],
         tools: list[dict] | None = None,
         system_prompt: str | None = None,
         **llm_kwargs,
@@ -230,7 +283,7 @@ class LLMHelper:
         """Ask LLM to perform a task using available tools.
 
         Args:
-            prompt: User prompt describing the task
+            prompt: User prompt string or list of LLMMessage objects
             tools: Available tool schemas (defaults to all library tools)
             system_prompt: System prompt override
             **llm_kwargs: Additional arguments passed to LLM client
@@ -238,73 +291,34 @@ class LLMHelper:
         Returns:
             LLMResponse with tool call and execution details
         """
-        start_time = time.time()
-
         # Use provided tools or get all from library
         if tools is None:
             tools = self.function_library.get_schemas()
 
         # Prepare messages
-        messages = [
-            {"role": "system", "content": system_prompt or self.default_system_prompt},
-            {"role": "user", "content": prompt},
-        ]
+        if isinstance(prompt, str):
+            messages = [
+                LLMMessage(role=Role.SYSTEM, content=system_prompt or self.default_system_prompt),
+                LLMMessage(role=Role.USER, content=prompt),
+            ]
+        else:
+            messages = prompt
 
-        try:
-            # Get LLM response
-            response = self.llm_client.completion(
-                model=self.model, messages=messages, tools=tools, **llm_kwargs
-            )
+        # Get LLM response
+        response = self.llm_client.completion(
+            model=self.model, messages=messages, tools=tools, **llm_kwargs
+        )
 
-            response_time = int((time.time() - start_time) * 1000)
+        # Execute any tool calls that were returned
+        for tool_call in response.tool_calls:
+            if tool_call.tool_result is None:
+                tool_call.tool_result = self.function_library.call(tool_call.tool_name, tool_call.tool_args)
 
-            # Check if tool was called
-            tool_calls = response.get("choices", [{}])[0].get("message", {}).get("tool_calls", [])
-
-            if not tool_calls:
-                return LLMResponse(
-                    success=False,
-                    error_message="No tool was called",
-                    response_time_ms=response_time,
-                    raw_response=response,
-                )
-
-            tool_calls = []
-            for tool_call in tool_calls:
-                tool_name = tool_call["function"]["name"]
-                tool_args_str = tool_call["function"]["arguments"]
-                tool_args = json.loads(tool_args_str)
-
-                # Execute tool through function library
-                tool_result = self.function_library.call(
-                    {"name": tool_name, "arguments": tool_args}
-                )
-
-                tool_calls.append(ToolCall(tool_name, tool_args, tool_result))
-
-            return LLMResponse(
-                success=True,
-                tool_calls=tool_calls,
-                response_time_ms=response_time,
-                raw_response=response,
-            )
-
-        except json.JSONDecodeError as e:
-            return LLMResponse(
-                success=False,
-                error_message=f"Invalid JSON in tool arguments: {str(e)}",
-                response_time_ms=int((time.time() - start_time) * 1000),
-            )
-        except Exception as e:
-            return LLMResponse(
-                success=False,
-                error_message=f"LLM request failed: {str(e)}",
-                response_time_ms=int((time.time() - start_time) * 1000),
-            )
+        return response
 
     def ask_and_validate(
         self,
-        prompt: str,
+        prompt: str | list[LLMMessage],
         expected_tool: str,
         validation_fn: Callable | None = None,
         **llm_kwargs,
@@ -312,7 +326,7 @@ class LLMHelper:
         """Ask LLM and validate the response.
 
         Args:
-            prompt: User prompt
+            prompt: User prompt string or list of LLMMessage objects
             expected_tool: Expected tool name to be called
             validation_fn: Optional function to validate tool result
             **llm_kwargs: Additional LLM arguments
@@ -322,21 +336,116 @@ class LLMHelper:
         """
         response = self.ask(prompt, **llm_kwargs)
 
-        if not response.success:
-            return response
-
         # Validate tool name
-        if response.tool_calls[0].tool_name != expected_tool:
-            response.success = False
-            response.error_message = f"Expected tool '{expected_tool}', got '{response.tool_calls[0].tool_name}'"
-            return response
+        if not response.tool_calls or response.tool_calls[0].tool_name != expected_tool:
+            raise ValueError(
+                f"Expected tool '{expected_tool}', got '{response.tool_calls[0].tool_name if response.tool_calls else 'none'}'"
+            )
 
         # Validate result if function provided
         if validation_fn and not validation_fn(response):
-            response.success = False
-            response.error_message = "Tool result validation failed"
+            raise ValueError("Tool result validation failed")
 
         return response
+
+    def ask_with_conversation(
+        self,
+        prompt: str | list[LLMMessage],
+        max_rounds: int = 5,
+        tools: list[dict] | None = None,
+        system_prompt: str | None = None,
+        is_finished_callback: Callable[[list[LLMMessage]], bool] | None = None,
+        **llm_kwargs,
+    ) -> LLMResponse:
+        """Ask LLM with conversational flow allowing multiple tool calls.
+
+        Args:
+            prompt: User prompt string or list of LLMMessage objects
+            max_rounds: Maximum conversation rounds (default 5)
+            tools: Available tool schemas (defaults to all library tools)
+            system_prompt: System prompt override
+            is_finished_callback: Optional callback to check if task is complete
+            **llm_kwargs: Additional arguments passed to LLM client
+
+        Returns:
+            LLMResponse with all tool calls and conversation history
+        """
+        start_time = time.time()
+
+        # Use provided tools or get all from library
+        if tools is None:
+            tools = self.function_library.get_schemas()
+
+        # Initialize conversation
+        if isinstance(prompt, str):
+            messages = [
+                LLMMessage(role=Role.SYSTEM, content=system_prompt or self.default_system_prompt),
+                LLMMessage(role=Role.USER, content=prompt),
+            ]
+        else:
+            messages = prompt
+
+        all_tool_calls = []
+
+        for _ in range(max_rounds):
+            # Get LLM response
+            response = self.llm_client.completion(
+                model=self.model, messages=messages, tools=tools, **llm_kwargs
+            )
+
+            # Add assistant message to conversation
+            messages.extend(response.messages[len(messages) :])
+
+            # Check if task is finished using callback or completion marker
+            if is_finished_callback and is_finished_callback(messages):
+                break
+
+            # Check for completion marker in response content
+            if response.messages and "<<DONE>>" in response.messages[-1].content:
+                break
+
+            # If no tool calls, conversation is done
+            if not response.tool_calls:
+                break
+
+            # Execute each tool call and add results to conversation
+            for tool_call in response.tool_calls:
+                if tool_call.tool_result is None:
+                    tool_call.tool_result = self.function_library.call(tool_call.tool_name, tool_call.tool_args)
+
+                all_tool_calls.append(tool_call)
+
+                # Add tool result to conversation
+                if isinstance(tool_call.tool_result, str):
+                    tool_result_str = tool_call.tool_result
+                else:
+                    try:
+                        # Try to convert to dict if it's a Pydantic model
+                        if hasattr(tool_call.tool_result, "model_dump"):
+                            tool_result_str = json.dumps(tool_call.tool_result.model_dump())
+                        elif hasattr(tool_call.tool_result, "__dict__"):
+                            tool_result_str = json.dumps(tool_call.tool_result.__dict__)
+                        else:
+                            tool_result_str = str(tool_call.tool_result)
+                    except (TypeError, AttributeError):
+                        tool_result_str = str(tool_call.tool_result)
+
+                messages.append(
+                    LLMMessage(
+                        role=Role.TOOL,
+                        content=tool_result_str,
+                        tool_call_id=tool_call.id or f"call_{len(all_tool_calls)}",
+                    )
+                )
+
+        response_time = int((time.time() - start_time) * 1000)
+
+        return LLMResponse(
+            messages=messages,
+            tool_calls=all_tool_calls,
+            response_time_ms=response_time,
+            raw_response=response.raw_response,
+        )
 
 
 def create_llm_client(client_type: str = "litellm", **kwargs) -> LLMClient:

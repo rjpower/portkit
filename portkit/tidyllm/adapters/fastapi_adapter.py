@@ -159,7 +159,16 @@ def create_portkit_api(
         
         app = create_portkit_api(context={"project_root": Path("/my/project")})
     """
-    from ...tinyagent.portkit_agent import get_portkit_tools
+    def get_portkit_tools():
+        """Get all registered PortKit tools as FunctionDescription objects."""
+        from pathlib import Path
+        from portkit.tidyllm.discover import discover_tools_in_directory
+        
+        tools_dir = Path(__file__).parent.parent.parent / "tools"
+        return discover_tools_in_directory(
+            tools_dir, 
+            recursive=True,
+        )
 
     # Discover PortKit tools
     portkit_tools = get_portkit_tools()
