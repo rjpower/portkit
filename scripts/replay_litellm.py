@@ -58,9 +58,9 @@ async def replay_completion(log_data: dict[str, Any]) -> None:
         else:
             # Handle non-streaming response
             message = response.choices[0].message  # type: ignore
-            if hasattr(message, 'content') and message.content:
+            if hasattr(message, "content") and message.content:
                 print(message.content)
-            if hasattr(message, 'tool_calls') and message.tool_calls:
+            if hasattr(message, "tool_calls") and message.tool_calls:
                 print("\nTool calls detected:")
                 for tool_call in message.tool_calls:
                     print(f"  - {tool_call.function.name}: {tool_call.function.arguments}")
@@ -90,7 +90,7 @@ async def main():
 
     for log_file_path in args.log_files:
         log_file = Path(log_file_path)
-        
+
         if not log_file.exists():
             print(f"Error: Log file {log_file} does not exist")
             continue
@@ -106,7 +106,7 @@ async def main():
             continue
 
         await replay_completion(log_data)
-        
+
         # Add delay between replays if there are more files
         if log_file_path != args.log_files[-1]:
             print(f"Waiting {args.delay} seconds before next replay...")

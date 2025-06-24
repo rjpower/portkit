@@ -19,6 +19,11 @@ dependencies = [
     "tree-sitter-c>=0.20.0,<0.23.0",
 ]
 
+[project.optional-dependencies]
+adapters = [
+    "fastapi>=0.115.13",
+]
+
 
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning"]
@@ -37,6 +42,7 @@ packages = ["portkit"]
 
 [tool.ruff]
 line-length = 100
+exclude = ["libxml2"]
 
 
 [tool.ruff.lint]
@@ -76,12 +82,11 @@ ignore = [
 
 
 [tool.pytest.ini_options]
-python_files = ["*.py"]
-python_classes = ["Test*"]
+python_files = ["test_*.py", "test.py"]
 python_functions = ["test_*"]
-testpaths = [
-    "tests",
-]
+python_classes = ["Test*"]
+addopts = "--ignore-glob=*_bench.py"
+testpaths = ["portkit/", "tests/*"]
 norecursedirs = []
 filterwarnings = []
 
@@ -89,3 +94,8 @@ filterwarnings = []
 dev = [
     "ruff>=0.11.13",
 ]
+
+[tool.pyrefly]
+project-includes = ["portkit"]
+project-excludes = ["**/test_*.py", "**/test.py"]
+site-package-path = [".venv/lib/python3.12/site-packages"]

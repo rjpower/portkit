@@ -2,6 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Never use the phrase "You're absolutely right". The human is always right, just acknowledge and move on.
+
+
 ## Commands
 
 ### Development Commands

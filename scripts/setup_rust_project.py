@@ -35,9 +35,7 @@ def generate_rerun_directives(c_source_path: str, c_files: list[str]) -> str:
 
     lines = []
     for c_file in c_files:
-        lines.append(
-            f'    println!("cargo:rerun-if-changed={c_source_path}/{c_file}");'
-        )
+        lines.append(f'    println!("cargo:rerun-if-changed={c_source_path}/{c_file}");')
     return "\n".join(lines)
 
 
@@ -77,7 +75,7 @@ def generate_include_directives(c_source_path: str, include_dirs: list[str]) -> 
 
 def create_main_cargo_toml(rust_root: Path, config: ProjectConfig) -> None:
     """Generate main Cargo.toml file."""
-    
+
     cargo_toml_path = rust_root / "Cargo.toml"
     if cargo_toml_path.exists():
         return
@@ -125,7 +123,7 @@ debug = true
 
 def create_fuzz_cargo_toml(fuzz_root: Path, config: ProjectConfig) -> None:
     """Generate fuzz Cargo.toml file."""
-    
+
     fuzz_cargo_toml_path = fuzz_root / "Cargo.toml"
     if fuzz_cargo_toml_path.exists():
         return
@@ -165,7 +163,7 @@ doc = false
 
 def create_build_rs(rust_root: Path, config: ProjectConfig) -> None:
     """Generate build.rs file."""
-    
+
     build_rs_path = rust_root / "build.rs"
     if build_rs_path.exists():
         return
@@ -197,7 +195,7 @@ def create_build_rs(rust_root: Path, config: ProjectConfig) -> None:
 
 def create_lib_rs(rust_src: Path, config: ProjectConfig) -> None:
     """Generate lib.rs file."""
-    
+
     lib_rs_path = rust_src / "lib.rs"
     if not lib_rs_path.exists():
         lib_rs = """#![allow(non_snake_case)]
@@ -220,7 +218,7 @@ pub use ffi::*;
 
 def create_dummy_fuzz_test(fuzz_targets: Path, config: ProjectConfig) -> None:
     """Generate dummy fuzz test."""
-    
+
     dummy_fuzz_path = fuzz_targets / "fuzz_dummy.rs"
     if dummy_fuzz_path.exists():
         return
@@ -291,9 +289,9 @@ def setup_rust_project(
 ):
     project_root = Path(project_root)
     assert project_root.exists(), f"Project root {project_root} does not exist"
-    assert (
-        project_root / c_source_dir
-    ).exists(), f"C source directory {project_root / c_source_dir} does not exist"
+    assert (project_root / c_source_dir).exists(), (
+        f"C source directory {project_root / c_source_dir} does not exist"
+    )
 
     """Set up Rust project structure for C library porting."""
     project_name = project_root.name

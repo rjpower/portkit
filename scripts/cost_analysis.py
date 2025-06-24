@@ -16,14 +16,22 @@ def get_precise_token_counts(model, messages):
         prompt_messages = [msg for msg in messages if msg.get("role") != "assistant"]
         completion_messages = [msg for msg in messages if msg.get("role") == "assistant"]
 
-        prompt_tokens = token_counter(model=model, messages=prompt_messages) if prompt_messages else 0
-        completion_tokens = token_counter(model=model, messages=completion_messages) if completion_messages else 0
+        prompt_tokens = (
+            token_counter(model=model, messages=prompt_messages) if prompt_messages else 0
+        )
+        completion_tokens = (
+            token_counter(model=model, messages=completion_messages) if completion_messages else 0
+        )
 
         return prompt_tokens, completion_tokens
     except Exception:
         # Fallback to character-based estimation if token_counter fails
-        prompt_chars = sum(len(str(msg.get("content", ""))) for msg in messages if msg.get("role") != "assistant")
-        completion_chars = sum(len(str(msg.get("content", ""))) for msg in messages if msg.get("role") == "assistant")
+        prompt_chars = sum(
+            len(str(msg.get("content", ""))) for msg in messages if msg.get("role") != "assistant"
+        )
+        completion_chars = sum(
+            len(str(msg.get("content", ""))) for msg in messages if msg.get("role") == "assistant"
+        )
         return prompt_chars // 4, max(completion_chars // 4, 1)
 
 
@@ -122,20 +130,18 @@ def analyze_costs_by_operation():
 
     print(f"Total estimated cost: ${total_cost:.4f}")
     print(f"Total calls: {total_calls}")
-    print(f"Average cost per call: ${total_cost/total_calls:.4f}")
+    print(f"Average cost per call: ${total_cost / total_calls:.4f}")
 
     print("\n--- COST BY OPERATION TYPE ---")
-    for op_type in sorted(
-        operation_costs.keys(), key=lambda x: operation_costs[x], reverse=True
-    ):
+    for op_type in sorted(operation_costs.keys(), key=lambda x: operation_costs[x], reverse=True):
         cost = operation_costs[op_type]
         calls = operation_calls[op_type]
         tokens = operation_tokens[op_type]
 
         print(f"{op_type}:")
-        print(f"  Total cost: ${cost:.4f} ({cost/total_cost*100:.1f}%)")
-        print(f"  Calls: {calls} ({calls/total_calls*100:.1f}%)")
-        print(f"  Avg cost per call: ${cost/calls:.4f}")
+        print(f"  Total cost: ${cost:.4f} ({cost / total_cost * 100:.1f}%)")
+        print(f"  Calls: {calls} ({calls / total_calls * 100:.1f}%)")
+        print(f"  Avg cost per call: ${cost / calls:.4f}")
         print(
             f"  Estimated tokens: {tokens['prompt'] + tokens['completion']:,} (prompt: {tokens['prompt']:,}, completion: {tokens['completion']:,})"
         )
@@ -146,36 +152,30 @@ def analyze_costs_by_operation():
         cost = model_costs[model]
         calls = model_calls[model]
         print(f"{model}:")
-        print(f"  Total cost: ${cost:.4f} ({cost/total_cost*100:.1f}%)")
-        print(f"  Calls: {calls} ({calls/total_calls*100:.1f}%)")
-        print(f"  Avg cost per call: ${cost/calls:.4f}")
+        print(f"  Total cost: ${cost:.4f} ({cost / total_cost * 100:.1f}%)")
+        print(f"  Calls: {calls} ({calls / total_calls * 100:.1f}%)")
+        print(f"  Avg cost per call: ${cost / calls:.4f}")
         print()
 
     print("--- TOP 10 MOST EXPENSIVE SYMBOLS ---")
     top_symbols = sorted(symbol_costs.items(), key=lambda x: x[1], reverse=True)[:10]
     for symbol, cost in top_symbols:
         calls = symbol_calls[symbol]
-        print(f"{symbol}: ${cost:.4f} ({calls} calls, ${cost/calls:.4f} avg)")
+        print(f"{symbol}: ${cost:.4f} ({calls} calls, ${cost / calls:.4f} avg)")
 
     print("\n--- COST EFFICIENCY ANALYSIS ---")
     if operation_calls["stub_generation"] > 0:
-        stub_cost = (
-            operation_costs["stub_generation"] / operation_calls["stub_generation"]
-        )
+        stub_cost = operation_costs["stub_generation"] / operation_calls["stub_generation"]
         print(f"Stub generation avg cost: ${stub_cost:.4f}")
 
     if operation_calls["fuzz_test_generation"] > 0:
         fuzz_cost = (
-            operation_costs["fuzz_test_generation"]
-            / operation_calls["fuzz_test_generation"]
+            operation_costs["fuzz_test_generation"] / operation_calls["fuzz_test_generation"]
         )
         print(f"Fuzz test generation avg cost: ${fuzz_cost:.4f}")
 
     if operation_calls["full_implementation"] > 0:
-        impl_cost = (
-            operation_costs["full_implementation"]
-            / operation_calls["full_implementation"]
-        )
+        impl_cost = operation_costs["full_implementation"] / operation_calls["full_implementation"]
         print(f"Full implementation avg cost: ${impl_cost:.4f}")
 
 

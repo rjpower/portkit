@@ -11,13 +11,9 @@ from portkit.sourcemap import SourceMap
 
 
 def create_builder_ctx(project_root: Path) -> BuilderContext:
-    config = ProjectConfig(
-        project_name="debug", library_name="debug", project_root=project_root
-    )
+    config = ProjectConfig(project_name="debug", library_name="debug", project_root=project_root)
     ctx = BuilderContext(
-        project_root=project_root,
-        config=config,
-        source_map=SourceMap(project_root, config)
+        project_root=project_root, config=config, source_map=SourceMap(project_root, config)
     )
     ctx.processed_symbols.add("ZopfliOptions")
     ctx.processed_symbols.add("ZopfliDeflate")
@@ -55,6 +51,7 @@ def main():
         ctx=ctx,
     )
     print(struct_prompt)
+
 
 if __name__ == "__main__":
     main()
