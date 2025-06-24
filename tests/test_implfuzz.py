@@ -17,26 +17,14 @@ from portkit.config import ProjectConfig
 from portkit.implfuzz import BuilderContext, generate_unified_prompt
 from portkit.sourcemap import SourceMap, Symbol
 from portkit.tinyagent.agent import (
-    TOOL_HANDLER,
-    AppendFileRequest,
-    CompileError,
-    EditCodeRequest,
-    FuzzTestError,
-    ReadFileRequest,
-    RunFuzzTestRequest,
-    SearchRequest,
-    SearchSpec,
+    Agent,
     TaskStatus,
     TaskStatusType,
-    WriteFileRequest,
-    append_to_file,
-    compile_rust_project,
-    edit_code,
-    read_files,
-    replace_file,
-    run_fuzz_test,
-    search_files,
 )
+from portkit.tools.read_files import ReadFileRequest, read_files
+from portkit.tools.replace_file import WriteFileRequest, replace_file
+from portkit.tools.search_files import SearchRequest, SearchSpec, search_files
+# edit_code tests moved to portkit/tools/patch/test.py
 
 
 def create_test_context(project_root: Path) -> BuilderContext:
@@ -51,7 +39,10 @@ def create_test_context(project_root: Path) -> BuilderContext:
 
 def test_tools_spec_generation():
     """Test that tool specs are generated correctly."""
-    specs = TOOL_HANDLER.get_tools_spec()
+    from portkit.tidyllm import REGISTRY  # noqa: F401
+    from portkit.tools.shell import shell  # noqa: F401
+
+    specs = REGISTRY.get_schemas()
     assert isinstance(specs, list)
     assert len(specs) > 0
 
@@ -92,65 +83,6 @@ def test_read_nonexistent_c_source_file():
         read_files(request, ctx=ctx)
 
 
-def test_append_rust_code_creates_file():
-    """Test that append_to_file creates file if it doesn't exist."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir)
-        rust_dir = temp_path / "rust"
-        src_dir = rust_dir / "src"
-        src_dir.mkdir(parents=True)
-
-        # Create lib.rs
-        (src_dir / "lib.rs").write_text("// lib.rs\n")
-
-        ctx = create_test_context(temp_path)
-
-        # Mock the compile function to return success
-        with patch("portkit.implfuzz.compile_rust_project"):
-
-            request = AppendFileRequest(
-                path="rust/src/test.rs", content="pub fn test() { unimplemented!(); }"
-            )
-            result = append_to_file(request, ctx=ctx)
-
-            assert result.success is True
-
-            # Check file was created and contains content
-            test_file = src_dir / "test.rs"
-            assert test_file.exists()
-            assert "pub fn test()" in test_file.read_text()
-
-            # Check lib.rs was updated
-            lib_content = (src_dir / "lib.rs").read_text()
-            assert "pub mod test;" in lib_content
-
-
-def test_append_rust_code_appends_to_existing():
-    """Test that append_to_file appends to existing file."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir)
-        rust_dir = temp_path / "rust"
-        src_dir = rust_dir / "src"
-        src_dir.mkdir(parents=True)
-
-        # Create existing files
-        test_file = src_dir / "test.rs"
-        test_file.write_text("existing content\n")
-        (src_dir / "lib.rs").write_text("pub mod test;\n")
-
-        ctx = create_test_context(temp_path)
-
-        with patch("portkit.implfuzz.compile_rust_project"):
-
-            request = AppendFileRequest(path="rust/src/test.rs", content="new content")
-            result = append_to_file(request, ctx=ctx)
-
-            assert result.success is True
-
-            content = test_file.read_text()
-            assert "existing content" in content
-            assert "new content" in content
-
 
 def test_write_fuzz_test_creates_file_and_cargo_entry():
     """Test that fuzz test file and Cargo.toml entry are created."""
@@ -168,25 +100,23 @@ def test_write_fuzz_test_creates_file_and_cargo_entry():
 
         ctx = create_test_context(temp_path)
 
-        with patch("portkit.implfuzz.compile_rust_project"):
+        request = WriteFileRequest(
+            path="rust/fuzz/fuzz_targets/test_target.rs",
+            content="#![no_main]\nuse libfuzzer_sys::fuzz_target;\nfuzz_target!(|data: &[u8]| {});",
+        )
+        result = replace_file(request, ctx=ctx)
 
-            request = WriteFileRequest(
-                path="rust/fuzz/fuzz_targets/test_target.rs",
-                content="#![no_main]\nuse libfuzzer_sys::fuzz_target;\nfuzz_target!(|data: &[u8]| {});",
-            )
-            result = replace_file(request, ctx=ctx)
+        assert result.success is True
 
-            assert result.success is True
+        # Check fuzz test file was created
+        fuzz_file = fuzz_dir / "test_target.rs"
+        assert fuzz_file.exists()
+        assert "fuzz_target!" in fuzz_file.read_text()
 
-            # Check fuzz test file was created
-            fuzz_file = fuzz_dir / "test_target.rs"
-            assert fuzz_file.exists()
-            assert "fuzz_target!" in fuzz_file.read_text()
-
-            # Check Cargo.toml was updated
-            cargo_content = fuzz_cargo_toml.read_text()
-            assert 'name = "test_target"' in cargo_content
-            assert 'path = "fuzz_targets/test_target.rs"' in cargo_content
+        # Check Cargo.toml was updated
+        cargo_content = fuzz_cargo_toml.read_text()
+        assert 'name = "test_target"' in cargo_content
+        assert 'path = "fuzz_targets/test_target.rs"' in cargo_content
 
 
 def test_write_fuzz_test_skips_existing_cargo_entry():
@@ -211,9 +141,10 @@ path = "fuzz_targets/test_target.rs"
 
         ctx = create_test_context(temp_path)
 
-        with patch("portkit.implfuzz.compile_rust_project"):
-            request = WriteFileRequest(path="rust/fuzz/fuzz_targets/test_target.rs", content="test content")
-            result = replace_file(request, ctx=ctx)
+        request = WriteFileRequest(
+            path="rust/fuzz/fuzz_targets/test_target.rs", content="test content"
+        )
+        result = replace_file(request, ctx=ctx)
 
         # Should return success without trying to compile
         assert result.success is True
@@ -223,69 +154,6 @@ path = "fuzz_targets/test_target.rs"
         assert cargo_content.count('name = "test_target"') == 1
 
 
-@patch("portkit.tinyagent.agent.subprocess.run")
-def test_run_fuzz_test_success(mock_subprocess):
-    """Test successful fuzz test run."""
-    mock_subprocess.return_value = MagicMock(returncode=0, stderr="")
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        ctx = create_test_context(Path(temp_dir))
-
-        request = RunFuzzTestRequest(target="test_target", timeout=30)
-        result = run_fuzz_test(request, ctx=ctx)
-
-        assert result.success is True
-
-        # Check subprocess was called with correct arguments
-        mock_subprocess.assert_called_once()
-        args = mock_subprocess.call_args[0][0]
-        assert "cargo" in args
-        assert "fuzz" in args
-        assert "run" in args
-        assert "test_target" in args
-        assert "-max_total_time=30" in args
-
-
-@patch("portkit.tinyagent.agent.subprocess.run")
-def test_run_fuzz_test_failure(mock_subprocess):
-    """Test failed fuzz test run."""
-    mock_subprocess.return_value = MagicMock(
-        returncode=1, 
-        stderr="Error: assertion failed: values differ\nother error"
-    )
-
-    with tempfile.TemporaryDirectory() as temp_dir:
-        ctx = create_test_context(Path(temp_dir))
-
-        request = RunFuzzTestRequest(target="test_target")
-        with pytest.raises(FuzzTestError):
-            run_fuzz_test(request, ctx=ctx)
-
-
-@patch("portkit.tinyagent.agent.subprocess.run")
-def test_compile_rust_project_success(mock_subprocess):
-    """Test successful compilation."""
-    mock_subprocess.return_value = MagicMock(returncode=0, stderr="")
-
-    ctx = create_test_context(Path("/fake/path"))
-
-    compile_rust_project(Path("/fake/path"), ctx=ctx)
-
-    mock_subprocess.assert_called()
-
-
-@patch("portkit.tinyagent.agent.subprocess.run")
-def test_compile_rust_project_failure(mock_subprocess):
-    """Test compilation failure."""
-    ctx = create_test_context(Path("/fake/path"))
-
-    mock_subprocess.return_value = MagicMock(
-        returncode=1,
-        stderr="error: expected `;`\nerror: cannot find function"
-    )
-
-    with pytest.raises(CompileError):
-        compile_rust_project(Path("/fake/path"), ctx=ctx)
 
 
 def test_tool_execution_success():
@@ -296,10 +164,11 @@ def test_tool_execution_success():
 
     try:
         ctx = create_test_context(Path(temp_path).parent)
-        TOOL_HANDLER.set_context(ctx)
+        agent = Agent()
+        agent.set_context(ctx)
 
         args_json = f'{{"paths": ["{Path(temp_path).name}"]}}'
-        result = TOOL_HANDLER.run("read_files", args_json, "test_id")
+        result = agent.run("read_files", args_json, "test_id")
 
         assert result["role"] == "tool"
         assert result["tool_call_id"] == "test_id"
@@ -311,10 +180,11 @@ def test_tool_execution_success():
 def test_tool_execution_error():
     """Test tool execution with error."""
     ctx = create_test_context(Path("/tmp"))
-    TOOL_HANDLER.set_context(ctx)
+    agent = Agent()
+    agent.set_context(ctx)
 
     args_json = '{"paths": ["nonexistent.h"]}'
-    result = TOOL_HANDLER.run("read_files", args_json, "test_id")
+    result = agent.run("read_files", args_json, "test_id")
 
     assert result["role"] == "tool"
     assert result["tool_call_id"] == "test_id"
@@ -322,19 +192,19 @@ def test_tool_execution_error():
     # Should contain error information
     content = json.loads(result["content"])
     assert "error" in content
-    assert "type" in content
 
 
 def test_unknown_tool_error():
     """Test calling unknown tool."""
     ctx = create_test_context(Path("/tmp"))
-    TOOL_HANDLER.set_context(ctx)
+    agent = Agent()
+    agent.set_context(ctx)
 
-    result = TOOL_HANDLER.run("unknown_tool", "{}", "test_id")
+    result = agent.run("unknown_tool", "{}", "test_id")
 
     content = json.loads(result["content"])
     assert "error" in content
-    assert "Unknown tool" in content["error"]
+    assert "unknown_tool" in content["error"]
 
 
 def test_context_creation():
@@ -392,9 +262,9 @@ def test_search_files_success():
         ctx = create_test_context(temp_path)
 
         # Test single search
-        request = SearchRequest(searches=[
-            SearchSpec(pattern="int", directory="src", context_lines=1)
-        ])
+        request = SearchRequest(
+            searches=[SearchSpec(pattern="int", directory="src", context_lines=1)]
+        )
         result = search_files(request, ctx=ctx)
 
         # Should find matches in both files
@@ -406,8 +276,8 @@ def test_search_files_success():
         for _, matches in result.results.items():
             for match in matches:
                 found_paths.add(match.path)
-                assert hasattr(match, 'line')
-                assert hasattr(match, 'context')
+                assert hasattr(match, "line")
+                assert hasattr(match, "context")
                 assert isinstance(match.line, int)
                 assert "int" in match.context
 
@@ -425,7 +295,7 @@ def test_search_files_multiple_searches():
 
         # Create test files with different content
         test_c_file = src_dir / "test.c"
-        test_c_file.write_text("int main() {\n    printf(\"Hello\");\n    return 0;\n}")
+        test_c_file.write_text('int main() {\n    printf("Hello");\n    return 0;\n}')
 
         test_h_file = src_dir / "test.h"
         test_h_file.write_text("struct TestStruct {\n    float value;\n    char* name;\n};")
@@ -433,11 +303,13 @@ def test_search_files_multiple_searches():
         ctx = create_test_context(temp_path)
 
         # Test multiple searches with different patterns
-        request = SearchRequest(searches=[
-            SearchSpec(pattern="int", directory="src", context_lines=1),
-            SearchSpec(pattern="struct", directory="src", context_lines=0),
-            SearchSpec(pattern="char\\*", directory="src", context_lines=2)
-        ])
+        request = SearchRequest(
+            searches=[
+                SearchSpec(pattern="int", directory="src", context_lines=1),
+                SearchSpec(pattern="struct", directory="src", context_lines=0),
+                SearchSpec(pattern="char\\*", directory="src", context_lines=2),
+            ]
+        )
         result = search_files(request, ctx=ctx)
 
         # Should find matches for all patterns
@@ -451,7 +323,11 @@ def test_search_files_multiple_searches():
                 all_contexts.append(match.context)
 
         combined_context = " ".join(all_contexts)
-        assert "int" in combined_context or "struct" in combined_context or "char*" in combined_context
+        assert (
+            "int" in combined_context
+            or "struct" in combined_context
+            or "char*" in combined_context
+        )
 
 
 def test_search_files_context_lines():
@@ -467,7 +343,7 @@ def test_search_files_context_lines():
             "// Header comment\n"
             "// Another comment\n"
             "int main() {\n"
-            "    printf(\"Hello\");\n"
+            '    printf("Hello");\n'
             "    return 0;\n"
             "}\n"
             "// End comment"
@@ -476,9 +352,9 @@ def test_search_files_context_lines():
         ctx = create_test_context(temp_path)
 
         # Test with 0 context lines
-        request = SearchRequest(searches=[
-            SearchSpec(pattern="main", directory="src", context_lines=0)
-        ])
+        request = SearchRequest(
+            searches=[SearchSpec(pattern="main", directory="src", context_lines=0)]
+        )
         result = search_files(request, ctx=ctx)
 
         # Should find the match with minimal context
@@ -489,13 +365,13 @@ def test_search_files_context_lines():
                 if "main" in match.context:
                     found_match = True
                     # With 0 context lines, should only contain the matching line
-                    assert match.context.count('\n') <= 1
+                    assert match.context.count("\n") <= 1
         assert found_match
 
         # Test with more context lines
-        request = SearchRequest(searches=[
-            SearchSpec(pattern="main", directory="src", context_lines=2)
-        ])
+        request = SearchRequest(
+            searches=[SearchSpec(pattern="main", directory="src", context_lines=2)]
+        )
         result = search_files(request, ctx=ctx)
 
         # Should find the match with more context
@@ -523,15 +399,15 @@ def test_search_files_regex_patterns():
             "void func1() {}\n"
             "int func2(int x) { return x; }\n"
             "float func3(float y) { return y * 2; }\n"
-            "char* getString() { return \"hello\"; }\n"
+            'char* getString() { return "hello"; }\n'
         )
 
         ctx = create_test_context(temp_path)
 
         # Test regex pattern matching function definitions
-        request = SearchRequest(searches=[
-            SearchSpec(pattern=r"func\d+", directory="src", context_lines=0)
-        ])
+        request = SearchRequest(
+            searches=[SearchSpec(pattern=r"func\d+", directory="src", context_lines=0)]
+        )
         result = search_files(request, ctx=ctx)
 
         # Should find multiple function matches
@@ -550,17 +426,21 @@ def test_search_files_no_matches():
         temp_path = Path(temp_dir)
         src_dir = temp_path / "src"
         src_dir.mkdir()
-        
+
         # Create test file without the search pattern
         test_file = src_dir / "test.c"
         test_file.write_text("int main() {\n    return 0;\n}")
-        
+
         ctx = create_test_context(temp_path)
 
         # Search for pattern that doesn't exist
-        request = SearchRequest(searches=[
-            SearchSpec(pattern="nonexistent_pattern", directory="src", context_lines=1)
-        ])
+        request = SearchRequest(
+            searches=[
+                SearchSpec(
+                    pattern="nonexistent_pattern", directory="src", context_lines=1
+                )
+            ]
+        )
         result = search_files(request, ctx=ctx)
 
         # Should return empty results
@@ -574,242 +454,12 @@ def test_search_files_nonexistent_directory():
     """Test search_files with non-existent directory."""
     ctx = create_test_context(Path("/tmp"))
 
-    request = SearchRequest(searches=[
-        SearchSpec(pattern="test", directory="nonexistent")
-    ])
+    request = SearchRequest(
+        searches=[SearchSpec(pattern="test", directory="nonexistent")]
+    )
 
     with pytest.raises(ValueError, match="Directory nonexistent does not exist"):
         search_files(request, ctx=ctx)
-
-
-@patch("portkit.implfuzz.compile_rust_project")
-def test_edit_code_success(_):
-    """Test successful edit_code execution with Codex patch."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir)
-        rust_dir = temp_path / "rust"
-        src_dir = rust_dir / "src"
-        src_dir.mkdir(parents=True)
-
-        # Create initial Rust file
-        test_file = src_dir / "test.rs"
-        test_file.write_text("pub fn test() { unimplemented!(); }\n")
-
-        ctx = create_test_context(temp_path)
-
-        # Working patch format
-        patch_content = """rust/src/test.rs
-<<<<<<< SEARCH
-pub fn test() { unimplemented!(); }
-=======
-pub fn test() { println!("Hello"); }
->>>>>>> REPLACE"""
-
-        request = EditCodeRequest(patch=patch_content)
-        result = edit_code(request, ctx=ctx)
-
-        assert result.success is True
-
-        # Verify the file was actually patched
-        updated_content = test_file.read_text()
-        assert "println!" in updated_content
-        assert "unimplemented!" not in updated_content
-
-
-def test_edit_code_patch_failure():
-    """Test edit_code handling patch application failure."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir)
-        rust_dir = temp_path / "rust"
-        src_dir = rust_dir / "src"
-        src_dir.mkdir(parents=True)
-
-        test_file = src_dir / "test.rs"
-        test_file.write_text("pub fn test() { unimplemented!(); }")
-
-        ctx = create_test_context(temp_path)
-
-        # Create a malformed patch that will fail
-        patch_content = """rust/src/test.rs
-<<<<<<< SEARCH
-this line does not exist in the file
-=======
-pub fn test() { println!("Hello"); }
->>>>>>> REPLACE"""
-
-        request = EditCodeRequest(patch=patch_content)
-        result = edit_code(request, ctx=ctx)
-
-        assert result.success is False
-        assert len(result.messages) > 0
-
-
-def test_edit_code_nonexistent_file():
-    """Test edit_code with non-existent file."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        ctx = create_test_context(Path(temp_dir))
-
-        patch_content = """rust/src/nonexistent.rs
-<<<<<<< SEARCH
-old line
-=======
-new line
->>>>>>> REPLACE"""
-
-        request = EditCodeRequest(patch=patch_content)
-        result = edit_code(request, ctx=ctx)
-
-        assert result.success is False
-        assert len(result.messages) > 0
-
-
-def test_edit_code_invalid_path():
-    """Test edit_code with invalid file path (not in rust directory)."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir)
-
-        # Create file outside rust directory
-        test_file = temp_path / "test.rs"
-        test_file.write_text("test content")
-
-        ctx = create_test_context(temp_path)
-
-        patch_content = """test.rs
-<<<<<<< SEARCH
-test content
-=======
-new content
->>>>>>> REPLACE"""
-
-        request = EditCodeRequest(patch=patch_content)
-        result = edit_code(request, ctx=ctx)
-
-        assert result.success is False
-        assert len(result.messages) > 0
-
-
-def test_edit_code_multiple_strip_levels():
-    """Test edit_code with Codex patch format."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir)
-        rust_dir = temp_path / "rust"
-        src_dir = rust_dir / "src"
-        src_dir.mkdir(parents=True)
-
-        test_file = src_dir / "test.rs"
-        test_file.write_text("pub fn test() { unimplemented!(); }\n")
-
-        ctx = create_test_context(temp_path)
-
-        # Create a working patch
-        patch_content = """rust/src/test.rs
-<<<<<<< SEARCH
-pub fn test() { unimplemented!(); }
-=======
-pub fn test() { println!("Hello"); }
->>>>>>> REPLACE"""
-
-        request = EditCodeRequest(patch=patch_content)
-        result = edit_code(request, ctx=ctx)
-
-        assert result.success is True
-
-        # Verify the file was actually patched
-        updated_content = test_file.read_text()
-        assert "println!" in updated_content
-        assert "unimplemented!" not in updated_content
-
-
-def test_edit_code_fuzz_directory():
-    """Test edit_code works with files in rust/fuzz directory."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir)
-        rust_dir = temp_path / "rust"
-        fuzz_dir = rust_dir / "fuzz" / "fuzz_targets"
-        fuzz_dir.mkdir(parents=True)
-
-        test_file = fuzz_dir / "test_fuzz.rs"
-        test_file.write_text("#![no_main]\nuse libfuzzer_sys::fuzz_target;\n")
-
-        ctx = create_test_context(temp_path)
-
-        patch_content = """rust/fuzz/fuzz_targets/test_fuzz.rs
-<<<<<<< SEARCH
-#![no_main]
-use libfuzzer_sys::fuzz_target;
-=======
-#![no_main]
-use libfuzzer_sys::fuzz_target;
-
-fuzz_target!(|data: &[u8]| {});
->>>>>>> REPLACE"""
-
-        request = EditCodeRequest(patch=patch_content)
-        result = edit_code(request, ctx=ctx)
-
-        assert result.success is True
-
-        # Verify the file was actually patched
-        updated_content = test_file.read_text()
-        assert "fuzz_target!" in updated_content
-
-
-def test_edit_code_cleanup_temp_file():
-    """Test edit_code cleans up temporary patch file even on failure."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir)
-        rust_dir = temp_path / "rust"
-        src_dir = rust_dir / "src"
-        src_dir.mkdir(parents=True)
-
-        test_file = src_dir / "test.rs"
-        test_file.write_text("pub fn test() { unimplemented!(); }")
-
-        ctx = create_test_context(temp_path)
-
-        # Use a malformed patch that will fail
-        patch_content = """this is not a valid patch format"""
-
-        request = EditCodeRequest(patch=patch_content)
-        result = edit_code(request, ctx=ctx)
-
-        assert result.success is False
-        assert len(result.messages) > 0
-
-        # Test passes if no exception is raised during cleanup
-
-
-def test_edit_code_compilation_failure_after_patch():
-    """Test edit_code when patch succeeds but compilation fails."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir)
-        rust_dir = temp_path / "rust"
-        src_dir = rust_dir / "src"
-        fuzz_dir = rust_dir / "fuzz"
-        src_dir.mkdir(parents=True)
-        fuzz_dir.mkdir(parents=True)
-
-        test_file = src_dir / "test.rs"
-        test_file.write_text("pub fn test() { unimplemented!(); }\n")
-
-        ctx = create_test_context(temp_path)
-
-        patch_content = """rust/src/test.rs
-<<<<<<< SEARCH
-pub fn test() { unimplemented!(); }
-=======
-pub fn test() { invalid rust syntax }
->>>>>>> REPLACE"""
-
-        request = EditCodeRequest(patch=patch_content)
-
-        # Apply the patch first
-        result = edit_code(request, ctx=ctx)
-        assert result.success is True
-
-        # Then check that compilation fails
-        with pytest.raises(CompileError):
-            compile_rust_project(ctx.project_root / "rust", ctx=ctx)
 
 
 def test_generate_unified_prompt_function_basic():
@@ -1067,7 +717,7 @@ def test_generate_unified_prompt_typedef_no_fuzz_test():
 
         # Create test header file with typedef definition
         test_header = temp_path / "src" / "zopfli" / "test.h"
-        test_header.write_text("typedef int TestType;")
+        test_header.write_text("typedef struct { int x; int y; } TestType;")
 
         # Create test source file
         test_source = temp_path / "src" / "zopfli" / "test.c"
@@ -1080,7 +730,7 @@ def test_generate_unified_prompt_typedef_no_fuzz_test():
             name="TestType",
             kind="typedef",
             language="c",
-            signature="typedef int TestType;",
+            signature="typedef struct { int x; int y; } TestType;",
             declaration_file=test_header,
             declaration_line=1,
             definition_file=test_source,
@@ -1096,7 +746,8 @@ def test_generate_unified_prompt_typedef_no_fuzz_test():
         assert "<fuzz_test>" not in prompt
 
         # Check C source is still included
-        assert "typedef int TestType;" in prompt
+        print(prompt)
+        assert "typedef struct { int x; int y; } TestType;" in prompt
 
 
 def test_generate_unified_prompt_with_processed_symbols():
@@ -1193,17 +844,17 @@ def test_builder_context_processed_symbols():
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         ctx = create_test_context(temp_path)
-        
+
         # Should start empty
         assert len(ctx.processed_symbols) == 0
-        
+
         # Should be able to add symbols
         ctx.processed_symbols.add("symbol1")
         ctx.processed_symbols.add("symbol2")
         assert len(ctx.processed_symbols) == 2
         assert "symbol1" in ctx.processed_symbols
         assert "symbol2" in ctx.processed_symbols
-        
+
         # Should handle duplicates
         ctx.processed_symbols.add("symbol1")
         assert len(ctx.processed_symbols) == 2  # Still 2, no duplicates

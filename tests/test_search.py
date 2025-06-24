@@ -13,7 +13,7 @@ from portkit.implfuzz import (
     BuilderContext,
 )
 from portkit.sourcemap import SourceMap
-from portkit.tinyagent.agent import SearchRequest, SearchSpec, search_files
+from portkit.tools.search_files import SearchRequest, SearchSpec, search_files
 
 
 def create_test_context(project_root: Path) -> BuilderContext:
@@ -38,9 +38,7 @@ def test_search_files_success():
         test_c_file.write_text("int main() {\n    return 0;\n}")
 
         test_h_file = src_dir / "test.h"
-        test_h_file.write_text(
-            "extern int func();\nstruct TestStruct {\n    int value;\n};"
-        )
+        test_h_file.write_text("extern int func();\nstruct TestStruct {\n    int value;\n};")
 
         ctx = create_test_context(temp_path)
 
@@ -81,9 +79,7 @@ def test_search_files_multiple_searches():
         test_c_file.write_text('int main() {\n    printf("Hello");\n    return 0;\n}')
 
         test_h_file = src_dir / "test.h"
-        test_h_file.write_text(
-            "struct TestStruct {\n    float value;\n    char* name;\n};"
-        )
+        test_h_file.write_text("struct TestStruct {\n    float value;\n    char* name;\n};")
 
         ctx = create_test_context(temp_path)
 
@@ -109,9 +105,7 @@ def test_search_files_multiple_searches():
 
         combined_context = " ".join(all_contexts)
         assert (
-            "int" in combined_context
-            or "struct" in combined_context
-            or "char*" in combined_context
+            "int" in combined_context or "struct" in combined_context or "char*" in combined_context
         )
 
 
@@ -167,9 +161,7 @@ def test_search_files_context_lines():
                 if "main" in match.context:
                     found_match = True
                     # Should include surrounding lines
-                    assert (
-                        "comment" in match.context.lower() or "printf" in match.context
-                    )
+                    assert "comment" in match.context.lower() or "printf" in match.context
         assert found_match
 
 
@@ -222,11 +214,7 @@ def test_search_files_no_matches():
 
         # Search for pattern that doesn't exist
         request = SearchRequest(
-            searches=[
-                SearchSpec(
-                    pattern="nonexistent_pattern", directory="src", context_lines=1
-                )
-            ]
+            searches=[SearchSpec(pattern="nonexistent_pattern", directory="src", context_lines=1)]
         )
         result = search_files(request, ctx=ctx)
 
@@ -241,9 +229,7 @@ def test_search_files_nonexistent_directory():
     """Test search_files with non-existent directory."""
     ctx = create_test_context(Path("/tmp"))
 
-    request = SearchRequest(
-        searches=[SearchSpec(pattern="test", directory="nonexistent")]
-    )
+    request = SearchRequest(searches=[SearchSpec(pattern="test", directory="nonexistent")])
 
     with pytest.raises(ValueError, match="Directory nonexistent does not exist"):
         search_files(request, ctx=ctx)

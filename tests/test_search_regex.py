@@ -6,7 +6,7 @@ from pathlib import Path
 from portkit.config import ProjectConfig
 from portkit.implfuzz import BuilderContext
 from portkit.sourcemap import SourceMap
-from portkit.tinyagent.agent import SearchRequest, SearchSpec, search_files
+from portkit.tools.search_files import SearchRequest, SearchSpec, search_files
 
 
 def test_search_files_regex():
@@ -54,13 +54,15 @@ int SomeOtherFunction() {
         )
 
         # Test regex OR pattern
-        request = SearchRequest(searches=[
-            SearchSpec(
-                pattern="ZopfliGetLengthSymbol|ZopfliGetDistSymbol",
-                directory=".",
-                context_lines=1
-            )
-        ])
+        request = SearchRequest(
+            searches=[
+                SearchSpec(
+                    pattern="ZopfliGetLengthSymbol|ZopfliGetDistSymbol",
+                    directory=".",
+                    context_lines=1,
+                )
+            ]
+        )
 
         result = search_files(request, ctx=ctx)
 
@@ -106,13 +108,9 @@ pub fn simple_function() -> i32 {
         )
 
         # Test simple pattern
-        request = SearchRequest(searches=[
-            SearchSpec(
-                pattern="simple_function",
-                directory=".",
-                context_lines=0
-            )
-        ])
+        request = SearchRequest(
+            searches=[SearchSpec(pattern="simple_function", directory=".", context_lines=0)]
+        )
 
         result = search_files(request, ctx=ctx)
 
@@ -149,13 +147,9 @@ pub fn other_function() -> i32 { 0 }
         )
 
         # Test regex pattern for func_* functions
-        request = SearchRequest(searches=[
-            SearchSpec(
-                pattern="func_(one|two|three)",
-                directory=".",
-                context_lines=0
-            )
-        ])
+        request = SearchRequest(
+            searches=[SearchSpec(pattern="func_(one|two|three)", directory=".", context_lines=0)]
+        )
 
         result = search_files(request, ctx=ctx)
 
