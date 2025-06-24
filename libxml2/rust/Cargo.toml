@@ -1,0 +1,83 @@
+[package]
+name = "libxml2"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <you@example.com>"]
+description = "Rust port of libxml2 with chimera build system"
+license = "Apache-2.0"
+
+[lib]
+name = "libxml2"
+crate-type = ["staticlib", "rlib", "cdylib"]
+
+[features]
+default = []
+
+# Individual Rust module features
+rust-xmlstring = []
+rust-chvalid = []
+rust-dict = []
+rust-hash = []
+rust-list = []
+rust-buf = []
+rust-xmlmemory = []
+rust-error = []
+rust-threads = []
+rust-encoding = []
+rust-xmlio = []
+rust-uri = []
+rust-entities = []
+rust-tree = []
+rust-xmlsave = []
+rust-parser-internals = []
+rust-parser = []
+rust-sax2 = []
+rust-xpath = []
+rust-pattern = []
+rust-xpointer = []
+rust-valid = []
+rust-xmlregexp = []
+rust-xmlschemas = []
+rust-relaxng = []
+rust-schematron = []
+rust-htmlparser = []
+rust-htmltree = []
+rust-xmlreader = []
+rust-xmlwriter = []
+rust-c14n = []
+
+# Convenience features
+all-rust = [
+    "rust-xmlstring", "rust-chvalid", "rust-dict", "rust-hash", "rust-list",
+    "rust-buf", "rust-xmlmemory", "rust-error", "rust-threads", "rust-encoding",
+    "rust-xmlio", "rust-uri", "rust-entities", "rust-tree", "rust-xmlsave",
+    "rust-parser-internals", "rust-parser", "rust-sax2", "rust-xpath", "rust-pattern",
+    "rust-xpointer", "rust-valid", "rust-xmlregexp", "rust-xmlschemas", "rust-relaxng",
+    "rust-schematron", "rust-htmlparser", "rust-htmltree", "rust-xmlreader", "rust-xmlwriter",
+    "rust-c14n"
+]
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+cc = "1.1"
+bindgen = "0.69"
+glob = "0.3"
+
+[dev-dependencies]
+proptest = "1.0"
+criterion = "0.5"
+rand = "0.8"
+
+[profile.dev]
+debug = true
+overflow-checks = true
+
+[profile.release]
+lto = true
+codegen-units = 1
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true
