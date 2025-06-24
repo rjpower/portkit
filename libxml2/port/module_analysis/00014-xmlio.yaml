@@ -1,0 +1,29 @@
+module:
+  name: xmlio
+  description: Input/Output abstraction layer for various sources (files, memory,
+    network).
+  estimated_loc: 2958
+  c_files:
+  - xmlIO.c
+  header_files:
+  - include/libxml/xmlIO.h
+  key_functions:
+  - xmlParserInputBufferCreateFilename
+  - xmlOutputBufferCreateFilename
+  - xmlRegisterInputCallbacks
+  - xmlRegisterOutputCallbacks
+  dependencies:
+  - xmlstring
+  - xmlbuf
+  - xmlerror
+  - xmluri
+  - xmlencoding
+  - xzlib
+  - nanohttp
+  api_overview: The xmlIO module provides a comprehensive set of I/O interfaces for
+    libxml2, abstracting various input and output sources/destinations. Its primary
+    responsibility is to enable the XML parser to read data from diverse locations
+    (files, URIs, memory, compressed streams) and allow XML serializers to write data
+    to different targets, while handling character encoding conversions and proper
+    XML/HTML escaping. It supports both standard file I/O and extensible custom I/O
+    handlers.

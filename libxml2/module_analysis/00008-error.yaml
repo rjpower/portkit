@@ -1,0 +1,48 @@
+module:
+  name: error
+  description: "Error reporting and management system with structured error handling"
+  estimated_loc: 1409
+  c_files:
+    - error.c
+  header_files:
+    - include/libxml/xmlerror.h
+    - include/private/error.h
+  key_functions:
+    - xmlRaiseError
+    - xmlFormatError
+    - xmlGetLastError
+    - xmlResetLastError
+    - xmlResetError
+    - xmlCopyError
+    - xmlSetGenericErrorFunc
+    - xmlSetStructuredErrorFunc
+    - xmlIsCatastrophicError
+    - xmlErrString
+  dependencies:
+    - xmlmemory
+  api_overview: |
+    Manages error reporting and handling throughout libxml2. Provides both generic
+    (printf-style) and structured error reporting mechanisms with detailed error
+    information including context, location, and severity.
+    
+    Key structures:
+    - xmlError: Complete error information with domain, code, message, location
+    
+    Key enums:
+    - xmlErrorLevel: Error severity (NONE, WARNING, ERROR, FATAL)
+    - xmlParserErrors: Comprehensive error code enumeration
+    
+    Features:
+    - Thread-local error storage
+    - Structured and generic error handlers
+    - Error formatting with context information
+    - Catastrophic error detection
+    - Custom error handler registration
+    - Error history and reset capabilities
+    
+    Implementation notes:
+    - Thread-local storage for last error
+    - Callback-based error handling
+    - Format string security considerations
+    - In Rust: use Result<T, Error> types and custom error traits
+    - Thread-local storage via thread_local! macro

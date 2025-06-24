@@ -1,0 +1,27 @@
+module:
+  name: xmlvalid
+  description: DTD validation engine.
+  estimated_loc: 6559
+  c_files:
+  - valid.c
+  header_files:
+  - include/libxml/valid.h
+  key_functions:
+  - xmlValidateDocument
+  - xmlValidateElement
+  - xmlNewValidCtxt
+  dependencies:
+  - xmlstring
+  - xmlbuf
+  - xmldict
+  - xmltree
+  - xmlsave
+  - xmlregexp
+  - xmlparser
+  - xmllist
+  - xmlerror
+  api_overview: The 'valid' module in libxml2 is responsible for handling XML Document
+    Type Definitions (DTDs) and performing validity checking of XML documents against
+    these DTDs. It manages the parsing, storage, and querying of DTD declarations
+    (elements, attributes, notations, IDs, IDREFs) and provides the core logic for
+    validating an XML document's structure and content according to its DTD.

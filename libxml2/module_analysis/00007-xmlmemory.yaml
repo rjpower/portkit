@@ -1,0 +1,44 @@
+module:
+  name: xmlmemory
+  description: "Memory allocator wrapper with debugging and integrity checking"
+  estimated_loc: 516
+  c_files:
+    - xmlmemory.c
+  header_files:
+    - include/libxml/xmlmemory.h
+    - include/private/memory.h
+  key_functions:
+    - xmlMemMalloc
+    - xmlMemRealloc
+    - xmlMemFree
+    - xmlMemoryStrdup
+    - xmlMemSize
+    - xmlMemUsed
+    - xmlMemBlocks
+    - xmlMemSetup
+    - xmlMemGet
+    - xmlInitMemoryInternal
+    - xmlCleanupMemoryInternal
+  dependencies: []
+  api_overview: |
+    Provides libxml2's internal memory allocator wrapper with debugging capabilities.
+    Wraps standard C memory functions (malloc, realloc, free, strdup) with custom
+    headers for integrity checking and usage tracking.
+    
+    Key structures:
+    - MEMHDR: Memory block header with magic tag and size for integrity checking
+    
+    Features:
+    - Memory integrity checking with magic numbers
+    - Memory usage statistics (total size, block count)
+    - Custom allocator override support
+    - Thread-safe statistics tracking
+    - Zero-fill on free for security
+    - Double-free detection
+    
+    Implementation notes:
+    - All allocations include MEMHDR prefix
+    - Statistics protected by mutex
+    - Can be customized with xmlMemSetup()
+    - In Rust: use global allocator or custom allocator trait
+    - Debug features can use Rust's debugging allocators

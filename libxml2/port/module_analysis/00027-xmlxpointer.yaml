@@ -1,0 +1,22 @@
+module:
+  name: xmlxpointer
+  description: XPointer implementation.
+  estimated_loc: 666
+  c_files:
+  - xpointer.c
+  header_files:
+  - include/libxml/xpointer.h
+  key_functions:
+  - xmlXPtrNewContext
+  - xmlXPtrEval
+  dependencies:
+  - xmlxpath
+  - xmltree
+  api_overview: The xpointer module provides an API for evaluating XML Pointer (XPointer)
+    expressions against XML documents. It implements support for the 'element()' scheme
+    (W3C Proposed Recommendation 2002), 'xpath1()' (an alias for XPath 1.0), and 'xpointer()'
+    (also an alias for XPath 1.0). It also includes support for the 'xmlns()' scheme
+    to initialize namespaces for XPath evaluation. The module handles the cascading
+    evaluation of multiple XPointer parts, where subsequent parts are evaluated if
+    previous ones fail to locate a sub-resource. It aims to resolve XPointer expressions
+    to specific locations (nodesets) within an XML document.

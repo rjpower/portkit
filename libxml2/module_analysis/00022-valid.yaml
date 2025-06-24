@@ -1,0 +1,94 @@
+module:
+  name: valid
+  description: "DTD validation engine with element and attribute declaration processing"
+  estimated_loc: 7215
+  c_files:
+    - valid.c
+  header_files:
+    - include/libxml/valid.h
+  key_functions:
+    - xmlNewValidCtxt
+    - xmlFreeValidCtxt
+    - xmlAddElementDecl
+    - xmlAddAttributeDecl
+    - xmlFreeEnumeration
+    - xmlValidateDocument
+    - xmlValidateElement
+    - xmlValidateElementDecl
+    - xmlValidateAttributeDecl
+    - xmlValidateNotationDecl
+    - xmlValidateDtd
+    - xmlValidateRoot
+    - xmlValidateElementContent
+    - xmlValidateOneElement
+    - xmlValidateOneAttribute
+    - xmlValidateAttributeValue
+    - xmlValidateNameValue
+    - xmlValidateNamesValue
+    - xmlValidateNmtokenValue
+    - xmlValidateNmtokensValue
+    - xmlIsMixedElement
+    - xmlGetDtdElementDesc
+    - xmlGetDtdAttrDesc
+    - xmlGetDtdNotationDesc
+    - xmlGetDtdQElementDesc
+    - xmlGetDtdQAttrDesc
+    - xmlValidatePopElement
+    - xmlValidatePushElement
+    - xmlValidatePushCData
+    - xmlValidBuildContentModel
+    - xmlValidateDocumentFinal
+    - xmlValidateCheckMixed
+    - xmlValidateElementType
+  dependencies:
+    - tree
+    - hash
+    - xmlmemory
+    - error
+    - parser-internals
+    - list
+    - xmlsave
+    - regexp
+  api_overview: |
+    Implements Document Type Definition (DTD) validation for XML documents.
+    Handles element and attribute declarations, content models, and provides
+    comprehensive validation against DTD constraints.
+    
+    Key structures:
+    - xmlValidCtxt: Validation context with state tracking
+    - xmlElementContent: Tree structure for element content models
+    - xmlElement: Element declaration from DTD
+    - xmlAttribute: Attribute declaration from DTD  
+    - xmlEnumeration: Enumerated attribute values
+    - xmlValidState: Content model validation state stack
+    
+    Key enums:
+    - xmlElementContentType: Content model node types (PCDATA, ELEMENT, SEQ, OR)
+    - xmlElementContentOccur: Occurrence indicators (once, optional, multiple, plus)
+    - xmlElementTypeVal: Element content types (EMPTY, ANY, MIXED, ELEMENT)
+    - xmlAttributeType: Attribute data types (CDATA, ID, NMTOKEN, ENUMERATION)
+    - xmlAttributeDefault: Default specifications (REQUIRED, IMPLIED, FIXED)
+    
+    Features:
+    - Complete DTD processing and validation
+    - Element content model evaluation
+    - Attribute validation and type checking
+    - ID/IDREF reference validation
+    - Mixed content model support
+    - Content model regular expression compilation
+    - Validation context stack for nested elements
+    - Error reporting with location information
+    - Incremental validation during parsing
+    - Post-parse document validation
+    - Notation declaration handling
+    - Entity declaration validation
+    - Default attribute value application
+    
+    Implementation notes:
+    - State machine for content model validation
+    - Regular expression engine for complex models
+    - Hash tables for efficient declaration lookup
+    - Stack-based validation state tracking
+    - In Rust: enum-based content models
+    - Regular expression crate integration
+    - Visitor pattern for validation traversal

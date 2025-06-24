@@ -1,0 +1,89 @@
+module:
+  name: parser-internals
+  description: "Core parser infrastructure including contexts, input management, and error handling"
+  estimated_loc: 3483
+  c_files:
+    - parserInternals.c
+  header_files:
+    - include/libxml/parserInternals.h
+    - include/private/parser.h
+  key_functions:
+    - xmlCheckVersion
+    - xmlInitParserCtxt
+    - xmlFreeParserCtxt
+    - xmlCtxtSetErrorHandler
+    - xmlCtxtGetLastError
+    - xmlCtxtResetLastError
+    - xmlCtxtGetStatus
+    - xmlSwitchEncoding
+    - xmlSwitchEncodingName
+    - xmlSwitchToEncoding
+    - xmlSetDeclaredEncoding
+    - xmlGetActualEncoding
+    - xmlFreeInputStream
+    - xmlNewInputFromFile
+    - xmlCtxtNewInputFromUrl
+    - xmlCtxtNewInputFromMemory
+    - xmlCtxtNewInputFromString
+    - xmlCtxtNewInputFromFd
+    - xmlCtxtNewInputFromIO
+    - xmlParserGrow
+    - xmlParserShrink
+    - xmlParserCheckEOF
+    - xmlNextChar
+    - xmlCurrentChar
+    - xmlStringCurrentChar
+    - xmlCopyChar
+    - xmlCopyCharMultiByte
+    - xmlDetectEncoding
+    - xmlIsLetter
+    - xmlSubstituteEntitiesDefault
+    - xmlPedanticParserDefault
+    - xmlLineNumbersDefault
+    - xmlKeepBlanksDefault
+  dependencies:
+    - tree
+    - buf
+    - xmlio
+    - encoding
+    - entities
+    - xmlstring
+    - chvalid
+    - dict
+    - xmlmemory
+    - error
+    - uri
+  api_overview: |
+    Provides the foundational infrastructure for XML and HTML parsing including
+    parser context management, input stream handling, character processing,
+    encoding management, and error reporting.
+    
+    Key structures:
+    - xmlParserCtxt: Complete parser state and configuration
+    - xmlParserInput: Input stream with position tracking
+    - xmlParserInputBuffer: Buffered input with encoding conversion
+    
+    Key enums:
+    - xmlParserErrors: Comprehensive parser error codes
+    - xmlParserStatus: Document status flags (well-formed, valid, etc.)
+    - xmlCharEncoding: Supported character encodings
+    
+    Features:
+    - Parser context lifecycle management
+    - Input stream creation from multiple sources
+    - Character encoding detection and conversion
+    - Position tracking (line/column numbers)
+    - Structured error handling and reporting
+    - Buffer management (grow/shrink operations)
+    - Character processing utilities
+    - Encoding switching during parsing
+    - Resource limit enforcement
+    
+    Implementation notes:
+    - Central to all parsing operations
+    - Handles streaming input efficiently
+    - Position tracking for error reporting
+    - Character-by-character processing utilities
+    - In Rust: use iterator patterns for character processing
+    - Error handling through Result types
+    - Stream processing with async support possible

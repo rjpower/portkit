@@ -1,0 +1,24 @@
+module:
+  name: xmlentities
+  description: XML entity handling and management.
+  estimated_loc: 719
+  c_files:
+  - entities.c
+  header_files:
+  - include/libxml/entities.h
+  key_functions:
+  - xmlGetPredefinedEntity
+  - xmlAddEntity
+  - xmlEncodeEntitiesReentrant
+  dependencies:
+  - xmldict
+  - xmlstring
+  - xmlbuf
+  - xmltree
+  - xmlsave
+  api_overview: The 'entities' module in libxml2 is responsible for managing XML entity
+    declarations. It provides functions for creating, adding, retrieving, and freeing
+    XML entities, including predefined entities (like &lt;, &amp;), general entities,
+    and parameter entities. It handles their storage within a document's DTD (internal
+    or external subset) and provides utilities for escaping special characters into
+    their entity or character reference forms for XML output.

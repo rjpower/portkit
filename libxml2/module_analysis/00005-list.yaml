@@ -1,0 +1,48 @@
+module:
+  name: list
+  description: "Generic doubly-linked list implementation with custom comparator/deallocator support"
+  estimated_loc: 710
+  c_files:
+    - list.c
+  header_files:
+    - include/libxml/list.h
+  key_functions:
+    - xmlListCreate
+    - xmlListDelete
+    - xmlListSearch
+    - xmlListInsert
+    - xmlListAppend
+    - xmlListRemoveFirst
+    - xmlListRemoveAll
+    - xmlListClear
+    - xmlListEmpty
+    - xmlListSize
+    - xmlListPushFront
+    - xmlListPushBack
+    - xmlListWalk
+    - xmlListDup
+  dependencies: []
+  api_overview: |
+    Implements a generic doubly-linked list data structure for managing collections
+    of arbitrary data pointers. Supports custom data deallocators and comparators
+    for flexible data handling.
+    
+    Key structures:
+    - _xmlLink: Individual list node with prev/next pointers and data
+    - _xmlList: List container with sentinel node and function pointers
+    
+    Features:
+    - Circular doubly-linked list with sentinel node
+    - Custom deallocator function support
+    - Custom comparison function for ordering
+    - Ordered insertion and appending
+    - Search and removal operations
+    - Iterator/walker support
+    - Shallow duplication
+    
+    Implementation notes:
+    - Uses sentinel node to simplify boundary conditions
+    - Function pointers for custom data handling
+    - Memory management through libxml2 allocator
+    - Can be implemented in Rust using Vec<T> or custom linked list
+    - Generic over data type with trait-based comparison/cleanup

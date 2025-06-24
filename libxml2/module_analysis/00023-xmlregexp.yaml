@@ -1,0 +1,79 @@
+module:
+  name: xmlregexp
+  description: "Regular expression engine for XML content model validation and schema constraints"
+  estimated_loc: 8547
+  c_files:
+    - xmlregexp.c
+  header_files:
+    - include/libxml/xmlregexp.h
+    - include/libxml/xmlautomata.h
+  key_functions:
+    - xmlRegCompile
+    - xmlRegFreeRegexp
+    - xmlRegNewExecCtxt
+    - xmlRegFreeExecCtxt
+    - xmlRegExec
+    - xmlRegexpIsDeterminist
+    - xmlRegexpCompile
+    - xmlRegexpExec
+    - xmlRegexpPrint
+    - xmlAutomataNew
+    - xmlAutomataFree
+    - xmlAutomataGetInitState
+    - xmlAutomataSetFinalState
+    - xmlAutomataNewState
+    - xmlAutomataNewTransition
+    - xmlAutomataNewEpsilon
+    - xmlAutomataNewAtom
+    - xmlAutomataNewCounter
+    - xmlAutomataNewCountTrans
+    - xmlAutomataCompile
+    - xmlAutomataGetCounter
+    - xmlRegexpTestCompile
+  dependencies:
+    - xmlmemory
+    - error
+    - xmlstring
+  api_overview: |
+    Provides a comprehensive regular expression engine designed specifically
+    for XML validation contexts including DTD content models, XML Schema
+    patterns, and RELAX-NG expressions.
+    
+    Key structures:
+    - xmlRegParserCtxt: Compilation context with parser state
+    - xmlRegexp: Compiled regular expression with finite automaton
+    - xmlRegAtom: Atomic expression components (characters, strings, ranges)
+    - xmlRegState: Finite automaton states with transitions
+    - xmlRegExecCtxt: Execution context for pattern matching
+    - xmlAutomata: High-level automaton construction interface
+    
+    Key enums:
+    - xmlRegAtomType: Atom types (char, string, ranges, Unicode categories)
+    - xmlRegQuantType: Quantifiers (once, optional, multiple, plus, range)
+    - xmlRegStateType: State types (start, final, transition, sink)
+    
+    Features:
+    - Regular expression compilation to finite automata
+    - Both NFA and DFA representation support
+    - Unicode character class support
+    - XML-specific character classes (letters, digits, spaces)
+    - Unicode block and category matching
+    - Quantifier support (?, *, +, {n,m})
+    - Epsilon transitions for complex patterns
+    - Backtracking execution for non-deterministic automata
+    - Deterministic optimization for performance
+    - Compact representation for memory efficiency
+    - Token-based and string-based input processing
+    - Callback mechanism for custom token handling
+    - Counter support for bounded repetition
+    - Automaton construction API for programmatic building
+    - Pattern debugging and visualization
+    
+    Implementation notes:
+    - Thompson NFA construction algorithm
+    - Subset construction for DFA conversion
+    - Memory-efficient state representation
+    - Optimized transitions for common patterns
+    - In Rust: regex crate integration or custom engine
+    - State machine with enum-based states
+    - Iterator patterns for match processing

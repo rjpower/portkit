@@ -1,0 +1,24 @@
+module:
+  name: xmlencoding
+  description: Character encoding conversion and handler management.
+  estimated_loc: 3002
+  c_files:
+  - encoding.c
+  header_files:
+  - include/libxml/encoding.h
+  key_functions:
+  - xmlDetectCharEncoding
+  - xmlCreateCharEncodingHandler
+  - xmlCharEncInFunc
+  - xmlCharEncOutFunc
+  dependencies:
+  - xmlstring
+  - xmlbuf
+  - xmlerror
+  api_overview: The 'encoding' module in libxml2 is responsible for handling character
+    encoding detection, parsing, and conversion. Its primary role is to enable XML
+    and HTML parsers to correctly interpret and generate documents in various character
+    sets by converting them to and from UTF-8, which is the internal encoding used
+    by libxml2. It supports a wide range of standard encodings, provides mechanisms
+    for alias management, and can leverage external libraries like iconv and ICU for
+    broader encoding support.

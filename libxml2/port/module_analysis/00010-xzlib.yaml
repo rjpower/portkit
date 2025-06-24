@@ -1,0 +1,17 @@
+module:
+  name: xzlib
+  description: XZ compression integration for I/O.
+  estimated_loc: 821
+  c_files:
+  - xzlib.c
+  header_files:
+  - include/libxml/xzlib.h
+  key_functions:
+  - __libxml2_xzopen
+  - __libxml2_xzread
+  - __libxml2_xzclose
+  dependencies: []
+  api_overview: This module provides a transparent I/O layer for libxml2 to handle
+    compressed files, specifically supporting LZMA and optionally gzip formats. It
+    abstracts away the decompression details, allowing other parts of libxml2 to read
+    from compressed files as if they were uncompressed, using a file-like interface.

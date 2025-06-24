@@ -1,0 +1,68 @@
+module:
+  name: pattern
+  description: "XPath pattern compilation and streaming evaluation for efficient node matching"
+  estimated_loc: 1438
+  c_files:
+    - pattern.c
+  header_files:
+    - include/libxml/pattern.h
+  key_functions:
+    - xmlPatterncompile
+    - xmlFreePattern
+    - xmlFreePatternList
+    - xmlPatternMatch
+    - xmlPatternGetStreamCtxt
+    - xmlFreeStreamCtxt
+    - xmlStreamPush
+    - xmlStreamPushNode
+    - xmlStreamPushAttr
+    - xmlStreamPop
+    - xmlStreamWantsAnyNode
+    - xmlPatternFromRoot
+    - xmlPatternGetStreamCtxtPtr
+    - xmlPatternMaxDepth
+    - xmlPatternMinDepth
+  dependencies:
+    - tree
+    - dict
+    - xmlmemory
+    - error
+    - parser-internals
+  api_overview: |
+    Provides XPath-like pattern compilation and evaluation for both tree-based
+    and streaming XML processing. Enables efficient node selection and matching
+    with support for XML Schema Identity Constraints.
+    
+    Key structures:
+    - xmlPattern: Compiled XPath pattern for tree/stream matching
+    - xmlStreamComp: Pattern compiled for streaming automaton
+    - xmlStreamCtxt: Runtime state for streaming pattern evaluation
+    - xmlStepOp: Single operation in tree-based pattern
+    - xmlStreamStep: Single step in streaming automaton
+    
+    Key enums:
+    - xmlPatOp: Pattern operation types (element, attribute, parent, ancestor)
+    
+    Features:
+    - XPath-like pattern compilation
+    - Tree-based pattern matching against existing nodes
+    - Streaming pattern evaluation for SAX-like processing
+    - Multiple pattern syntaxes (XPath, XML Schema selector/field)
+    - Namespace-aware matching
+    - Wildcard support (* for any element)
+    - Descendant axis support (//)
+    - Attribute matching
+    - Pattern combination with union (|)
+    - Memory-efficient streaming automaton
+    - State management for incremental evaluation
+    - Integration with XML Schema validation
+    - Root and depth constraints
+    
+    Implementation notes:
+    - Finite state automaton for streaming evaluation
+    - Optimized pattern compilation with operation fusion
+    - Memory pooling through dictionary integration
+    - Thread-safe pattern objects (contexts are per-thread)
+    - In Rust: state machine with enum-based operations
+    - Iterator patterns for streaming evaluation
+    - Trait-based pattern matching interface

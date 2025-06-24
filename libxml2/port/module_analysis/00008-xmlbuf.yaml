@@ -1,0 +1,24 @@
+module:
+  name: xmlbuf
+  description: Dynamic buffer management for I/O and string building.
+  estimated_loc: 1156
+  c_files:
+  - buf.c
+  header_files:
+  - include/libxml/tree.h
+  - include/libxml/xmlIO.h
+  key_functions:
+  - xmlBufCreate
+  - xmlBufferCreate
+  - xmlBufAdd
+  - xmlBufferAdd
+  dependencies:
+  - xmlstring
+  api_overview: The buf module in libxml2 provides robust and efficient memory buffer
+    management. Its primary responsibility is to handle dynamic memory buffers for
+    various libxml2 operations, ensuring memory safety, 64-bit compatibility, and
+    improved control over allocations. It introduces a new opaque xmlBuf structure
+    and its associated API, which is intended to replace the older, deprecated xmlBuffer
+    API. This module is fundamental for I/O operations, parsing, and tree manipulation
+    within libxml2, providing the underlying storage for data streams and document
+    content.

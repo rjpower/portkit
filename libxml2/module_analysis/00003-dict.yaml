@@ -1,0 +1,49 @@
+module:
+  name: dict
+  description: "String dictionary/interning service with hash table and memory pools"
+  estimated_loc: 1026
+  c_files:
+    - dict.c
+  header_files:
+    - include/libxml/dict.h
+    - include/private/dict.h
+  key_functions:
+    - xmlDictCreate
+    - xmlDictCreateSub
+    - xmlDictFree
+    - xmlDictReference
+    - xmlDictLookup
+    - xmlDictExists
+    - xmlDictQLookup
+    - xmlDictOwns
+    - xmlDictSize
+    - xmlDictSetLimit
+    - xmlDictGetUsage
+    - xmlInitRandom
+    - xmlCleanupRandom
+    - xmlGlobalRandom
+    - xmlRandom
+  dependencies:
+    - xmlstring
+  api_overview: |
+    Implements string interning (dictionary) services for libxml2 to optimize memory
+    usage and enable fast pointer-based string comparisons. Uses hash tables with
+    linked memory pools for string storage and supports hierarchical dictionaries.
+    
+    Key structures:
+    - _xmlDict: Main dictionary with hash table, memory pools, reference counting
+    - _xmlDictStrings: Memory pool for string storage
+    - xmlHashedString: Hash table entry with string pointer and hash value
+    
+    Features:
+    - Reference counting for shared dictionaries
+    - Memory usage limits and tracking
+    - Hierarchical dictionaries (sub-dictionaries)
+    - QName (qualified name) support
+    - Thread-safe PRNG for hash randomization
+    
+    Implementation notes:
+    - Uses custom hash function with randomization
+    - Memory pools for contiguous string allocation
+    - Can be implemented in Rust using HashMap for interning
+    - PRNG functionality can use Rust's rand crate

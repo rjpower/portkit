@@ -1,0 +1,113 @@
+module:
+  name: xmlreader
+  description: "Streaming pull-parser API for forward-only XML processing with validation support"
+  estimated_loc: 5488
+  c_files:
+    - xmlreader.c
+  header_files:
+    - include/libxml/xmlreader.h
+  key_functions:
+    - xmlTextReaderRead
+    - xmlTextReaderReadState
+    - xmlTextReaderExpand
+    - xmlTextReaderNext
+    - xmlNewTextReader
+    - xmlNewTextReaderFilename
+    - xmlNewTextReaderFile
+    - xmlFreeTextReader
+    - xmlTextReaderNodeType
+    - xmlTextReaderName
+    - xmlTextReaderLocalName
+    - xmlTextReaderNamespaceUri
+    - xmlTextReaderPrefix
+    - xmlTextReaderValue
+    - xmlTextReaderBaseUri
+    - xmlTextReaderAttributeCount
+    - xmlTextReaderDepth
+    - xmlTextReaderHasAttributes
+    - xmlTextReaderHasValue
+    - xmlTextReaderIsDefault
+    - xmlTextReaderIsEmptyElement
+    - xmlTextReaderQuoteChar
+    - xmlTextReaderXmlLang
+    - xmlTextReaderConstName
+    - xmlTextReaderConstLocalName
+    - xmlTextReaderConstNamespaceUri
+    - xmlTextReaderConstPrefix
+    - xmlTextReaderConstValue
+    - xmlTextReaderGetAttribute
+    - xmlTextReaderGetAttributeNo
+    - xmlTextReaderGetAttributeNs
+    - xmlTextReaderMoveToAttribute
+    - xmlTextReaderMoveToAttributeNo
+    - xmlTextReaderMoveToAttributeNs
+    - xmlTextReaderMoveToFirstAttribute
+    - xmlTextReaderMoveToNextAttribute
+    - xmlTextReaderMoveToElement
+    - xmlTextReaderReadAttributeValue
+    - xmlTextReaderSetParserProp
+    - xmlTextReaderGetParserProp
+    - xmlTextReaderCurrentNode
+    - xmlTextReaderCurrentDoc
+    - xmlTextReaderRelaxNGValidate
+    - xmlTextReaderSchemaValidate
+    - xmlTextReaderRelaxNGSetSchema
+    - xmlTextReaderSchemaValidateCtxt
+    - xmlTextReaderSetSchema
+    - xmlTextReaderClose
+  dependencies:
+    - tree
+    - parser-internals
+    - xmlmemory
+    - error
+    - xmlio
+    - uri
+    - encoding
+    - xmlsave
+    - relaxng
+    - xmlschemas
+    - valid
+    - xinclude
+    - pattern
+  api_overview: |
+    Provides a streaming, forward-only XML reader API similar to .NET's
+    XmlTextReader. Built on top of libxml2's SAX parser with memory-efficient
+    processing and integrated validation support.
+    
+    Key structures:
+    - xmlTextReader: Main reader instance with parser state
+    - xmlParserCtxt: Underlying parser context
+    - xmlNode: Current XML node being processed
+    
+    Key enums:
+    - xmlTextReaderState: Reader position states (element, end, done, error)
+    - xmlTextReaderValidate: Validation types (DTD, RelaxNG, XML Schema)
+    
+    Features:
+    - Pull-parser streaming interface
+    - Forward-only document traversal
+    - Memory-efficient processing (doesn't load entire document)
+    - Integrated validation (DTD, RelaxNG, XML Schema)
+    - XInclude processing support
+    - Node expansion to DOM when needed
+    - Attribute navigation and access
+    - Namespace-aware processing
+    - Custom error handling callbacks
+    - Resource loading customization
+    - Subtree skipping capabilities
+    - Position and depth tracking
+    - Document base URI handling
+    - Parser property configuration
+    - Node recycling for memory efficiency
+    - Support for multiple input sources
+    - Schema validation integration
+    - Pattern-based processing
+    
+    Implementation notes:
+    - Wraps SAX parser for pull-based access
+    - On-demand DOM expansion for complex operations
+    - Memory recycling for performance
+    - State machine for reader position tracking
+    - In Rust: Iterator-based streaming with validation
+    - Trait-based reader interface
+    - Zero-copy string handling where possible

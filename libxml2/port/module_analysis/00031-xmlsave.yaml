@@ -1,0 +1,24 @@
+module:
+  name: xmlsave
+  description: XML document serialization/saving.
+  estimated_loc: 2681
+  c_files:
+  - xmlsave.c
+  header_files:
+  - include/libxml/xmlsave.h
+  key_functions:
+  - xmlSaveDoc
+  - xmlSaveFile
+  - xmlNodeDumpOutput
+  dependencies:
+  - xmlio
+  - xmlbuf
+  - xmlstring
+  - xmltree
+  - xmlvalid
+  api_overview: The xmlsave module provides the core functionality for serializing
+    XML and HTML documents, or subtrees of documents, to various output destinations.
+    It handles character encoding conversion, output formatting (indentation, newlines),
+    and specific rules for XML, HTML, and XHTML serialization, including DTD declarations
+    and attribute handling. Its primary responsibility is to convert an in-memory
+    libxml2 document tree into a byte stream.

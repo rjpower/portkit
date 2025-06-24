@@ -1,0 +1,81 @@
+module:
+  name: sax2
+  description: "Default SAX2 handler implementation for DOM tree building"
+  estimated_loc: 2819
+  c_files:
+    - SAX2.c
+  header_files:
+    - include/libxml/SAX2.h
+  key_functions:
+    - xmlSAX2StartDocument
+    - xmlSAX2EndDocument
+    - xmlSAX2StartElementNs
+    - xmlSAX2EndElementNs
+    - xmlSAX2StartElement
+    - xmlSAX2EndElement
+    - xmlSAX2Characters
+    - xmlSAX2IgnorableWhitespace
+    - xmlSAX2ProcessingInstruction
+    - xmlSAX2Comment
+    - xmlSAX2CDataBlock
+    - xmlSAX2Reference
+    - xmlSAX2ResolveEntity
+    - xmlSAX2GetEntity
+    - xmlSAX2GetParameterEntity
+    - xmlSAX2InternalSubset
+    - xmlSAX2ExternalSubset
+    - xmlSAX2EntityDecl
+    - xmlSAX2AttributeDecl
+    - xmlSAX2ElementDecl
+    - xmlSAX2NotationDecl
+    - xmlSAX2UnparsedEntityDecl
+    - xmlSAX2SetDocumentLocator
+    - xmlSAX2GetLineNumber
+    - xmlSAX2GetColumnNumber
+    - xmlSAX2IsStandalone
+    - xmlSAX2HasInternalSubset
+    - xmlSAX2HasExternalSubset
+    - xmlSAXDefaultVersion
+    - xmlSAX2InitDefaultSAXHandler
+    - xmlSAX2InitHtmlDefaultSAXHandler
+    - htmlDefaultSAXHandlerInit
+    - xmlDefaultSAXHandlerInit
+  dependencies:
+    - parser-internals
+    - tree
+    - entities
+    - xmlmemory
+    - error
+    - uri
+    - xmlio
+  api_overview: |
+    Implements the default SAX2 (Simple API for XML 2) handler that builds
+    DOM trees from SAX parsing events. Provides the bridge between the
+    low-level parser and high-level tree structures.
+    
+    Key structures:
+    - xmlSAXHandler: Function pointer structure for SAX callbacks
+    - Uses xmlParserCtxt, xmlDoc, xmlNode from other modules
+    
+    Features:
+    - Complete SAX2 callback implementation
+    - DOM tree construction from SAX events
+    - Namespace-aware element processing
+    - DTD processing (internal/external subsets)
+    - Entity resolution and handling
+    - Attribute processing with defaults
+    - Character data accumulation
+    - Error and warning reporting
+    - Document locator support (line/column tracking)
+    - Support for both XML and HTML parsing
+    - Validation integration
+    
+    Implementation notes:
+    - Default handlers for DOM tree building
+    - Namespace reconciliation during parsing
+    - Memory management for tree nodes
+    - Integration with validation subsystem
+    - Parser context state management
+    - In Rust: implement trait-based SAX handlers
+    - Event-driven architecture maps to iterator patterns
+    - DOM building can use builder pattern

@@ -1,0 +1,20 @@
+module:
+  name: xmlmemory
+  description: Custom memory allocation functions for libxml2.
+  estimated_loc: 516
+  c_files:
+  - xmlmemory.c
+  header_files:
+  - include/libxml/xmlmemory.h
+  key_functions:
+  - xmlMemMalloc
+  - xmlMemFree
+  - xmlMemSetup
+  dependencies: []
+  api_overview: The xmlmemory module in libxml2 provides a wrapper layer over standard
+    C memory allocation functions (malloc, realloc, free, strdup). Its primary purpose
+    is to offer a centralized, debug-friendly, and customizable memory management
+    interface for the libxml2 library. It tracks memory usage (total size and number
+    of blocks), performs basic integrity checks (tag validation), and allows external
+    applications to override the default memory allocation routines used by libxml2,
+    which is crucial for integration with custom allocators or garbage collectors.

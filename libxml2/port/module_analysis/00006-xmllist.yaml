@@ -1,0 +1,20 @@
+module:
+  name: xmllist
+  description: Generic linked list implementation.
+  estimated_loc: 710
+  c_files:
+  - list.c
+  header_files:
+  - include/libxml/list.h
+  key_functions:
+  - xmlListCreate
+  - xmlListAppend
+  - xmlListWalk
+  dependencies: []
+  api_overview: This module provides a generic, doubly linked list implementation.
+    It allows storing arbitrary void* data pointers and offers a comprehensive set
+    of operations for list management, including creation, deletion, insertion, removal,
+    searching, traversal, and manipulation (e.g., sorting, reversing, merging, copying).
+    The list supports custom data deallocation and comparison functions, making it
+    highly adaptable for various data types and ordering requirements. It uses a sentinel
+    node for simplified list boundary handling.

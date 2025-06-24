@@ -1,0 +1,54 @@
+module:
+  name: entities
+  description: "XML entity management including predefined, general, and parameter entities"
+  estimated_loc: 719
+  c_files:
+    - entities.c
+  header_files:
+    - include/libxml/entities.h
+    - include/private/entities.h
+  key_functions:
+    - xmlAddEntity
+    - xmlGetPredefinedEntity
+    - xmlGetDocEntity
+    - xmlGetParameterEntity
+    - xmlGetDtdEntity
+    - xmlFreeEntity
+    - xmlNewEntity
+    - xmlEncodeEntitiesReentrant
+    - xmlFreeEntitiesTable
+    - xmlDumpEntityDecl
+    - xmlDumpEntitiesTable
+  dependencies:
+    - hash
+    - dict
+    - xmlstring
+    - xmlmemory
+    - error
+  api_overview: |
+    Manages XML entities including predefined entities (&lt;, &gt;, &amp;, &quot;, &apos;),
+    general entities, and parameter entities. Handles both internal and external
+    entity declarations and provides entity lookup and text escaping services.
+    
+    Key structures:
+    - xmlEntity: Entity declaration with name, type, content, and external IDs
+    
+    Key enums:
+    - xmlEntityType: Entity classification (internal/external, general/parameter, parsed/unparsed)
+    
+    Features:
+    - Predefined XML entity support
+    - General and parameter entity management
+    - Internal and external entity declarations
+    - Entity lookup in DTD subsets
+    - Text encoding with entity substitution
+    - Entity table management via hash tables
+    - Memory management with dictionary interning
+    
+    Implementation notes:
+    - Uses hash tables for efficient entity lookup
+    - Dictionary interning for memory optimization
+    - Supports both internal and external DTD subsets
+    - Special handling for HTML entity encoding
+    - In Rust: use HashMap for entity tables
+    - Predefined entities can be constants

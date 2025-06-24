@@ -1,0 +1,29 @@
+module:
+  name: xmltree
+  description: Core XML document tree manipulation (nodes, attributes, namespaces,
+    DTDs).
+  estimated_loc: 8914
+  c_files:
+  - tree.c
+  header_files:
+  - include/libxml/tree.h
+  key_functions:
+  - xmlNewDoc
+  - xmlFreeDoc
+  - xmlNewNode
+  - xmlAddChild
+  - xmlNodeGetContent
+  dependencies:
+  - xmlstring
+  - xmldict
+  - xmlbuf
+  - xmlvalid
+  - xmlsave
+  - xmlregexp
+  - xmlparser
+  api_overview: The 'tree' module in libxml2 provides the core data structures and
+    functions for representing, building, modifying, querying, and serializing XML
+    and HTML document trees in memory. It defines the fundamental types like nodes,
+    documents, attributes, namespaces, and DTDs, and offers a comprehensive API for
+    tree manipulation, content management, and namespace handling. It also includes
+    utilities for validating XML names and managing internal buffers.

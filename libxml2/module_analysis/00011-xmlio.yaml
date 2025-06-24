@@ -1,0 +1,58 @@
+module:
+  name: xmlio
+  description: "I/O abstraction layer with buffered input/output and compression support"
+  estimated_loc: 2958
+  c_files:
+    - xmlIO.c
+  header_files:
+    - include/libxml/xmlIO.h
+    - include/private/io.h
+  key_functions:
+    - xmlAllocParserInputBuffer
+    - xmlFreeParserInputBuffer
+    - xmlParserInputBufferCreateUrl
+    - xmlNewInputBufferMemory
+    - xmlAllocOutputBuffer
+    - xmlOutputBufferClose
+    - xmlOutputBufferCreateFilename
+    - xmlOutputBufferCreateFile
+    - xmlOutputBufferCreateBuffer
+    - xmlEscapeText
+    - xmlSerializeText
+    - xmlRegisterInputCallbacks
+    - xmlRegisterOutputCallbacks
+  dependencies:
+    - buf
+    - encoding
+    - xmlstring
+    - xmlmemory
+    - error
+  api_overview: |
+    Provides comprehensive I/O abstraction for libxml2, supporting files, memory,
+    network, and compressed streams. Handles buffering, encoding conversion,
+    and pluggable I/O callbacks for custom data sources.
+    
+    Key structures:
+    - xmlParserInputBuffer: Buffered input with encoding conversion and decompression
+    - xmlOutputBuffer: Buffered output with encoding conversion and compression
+    - xmlInputCallback/xmlOutputCallback: Custom I/O handler registration
+    
+    Key enums:
+    - xmlParserInputFlags: Input processing flags (compression, static buffers)
+    - xmlParserErrors: I/O-specific error codes
+    
+    Features:
+    - File, memory, and network I/O support
+    - Gzip and LZMA compression/decompression
+    - Character encoding conversion
+    - Pluggable I/O callback system
+    - URI/URL handling
+    - Character escaping utilities
+    - Buffered I/O for performance
+    
+    Implementation notes:
+    - Callback-based architecture for extensibility
+    - Automatic compression detection
+    - Character escaping tables (generated)
+    - In Rust: use std::io traits, flate2/xz2 for compression
+    - async I/O support possible with tokio

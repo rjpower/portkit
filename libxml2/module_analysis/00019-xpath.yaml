@@ -1,0 +1,103 @@
+module:
+  name: xpath
+  description: "XPath 1.0 implementation for XML document navigation and node selection"
+  estimated_loc: 12081
+  c_files:
+    - xpath.c
+  header_files:
+    - include/libxml/xpath.h
+    - include/libxml/xpathInternals.h
+  key_functions:
+    - xmlXPathInit
+    - xmlInitXPathInternal
+    - xmlXPathIsNaN
+    - xmlXPathIsInf
+    - xmlXPathErrMemory
+    - xmlXPathPErrMemory
+    - xmlXPathErr
+    - xmlXPatherror
+    - xmlXPathFreeCompExpr
+    - xmlXPathContextSetCache
+    - xmlXPathDebugDumpObject
+    - xmlXPathDebugDumpCompExpr
+    - xmlXPathCompile
+    - xmlXPathNewContext
+    - xmlXPathEval
+    - xmlXPathEvalExpression
+    - xmlXPathEvalPredicate
+    - xmlXPathCompiledEval
+    - xmlXPathNodeSetSort
+    - xmlXPathNodeSetCreate
+    - xmlXPathNodeSetMerge
+    - xmlXPathNodeSetAdd
+    - xmlXPathFreeObject
+    - xmlXPathNewNodeSet
+    - xmlXPathNewValueTree
+    - xmlXPathNewString
+    - xmlXPathNewFloat
+    - xmlXPathNewBoolean
+    - xmlXPathStringEvalNumber
+    - xmlXPathNextSelf
+    - xmlXPathNextChild
+    - xmlXPathNextDescendant
+    - xmlXPathNextParent
+    - xmlXPathNextAncestor
+    - xmlXPathNextAttribute
+    - xmlXPathNextNamespace
+    - xmlXPathNextFollowing
+    - xmlXPathNextPreceding
+    - xmlXPathLocationSetCreate
+    - xmlXPathLocationSetAdd
+    - xmlXPathLocationSetMerge
+    - xmlXPathLocationSetDel
+    - xmlXPathLocationSetRemove
+  dependencies:
+    - tree
+    - xmlmemory
+    - error
+    - hash
+    - parser-internals
+    - xmlstring
+  api_overview: |
+    Implements the XML Path Language (XPath) 1.0 specification for navigating
+    and selecting nodes from XML documents. Provides both compiled and
+    interpreted expression evaluation with comprehensive axis support.
+    
+    Key structures:
+    - xmlXPathCompExpr: Compiled XPath expression for efficient evaluation
+    - xmlXPathStepOp: Individual operation in compiled expression tree
+    - xmlXPathContextCache: Object pooling for performance optimization
+    - xmlXPathObject: Result object (nodeset, boolean, number, string)
+    - xmlNodeSet: Dynamic array of XML nodes
+    - xmlLocationSet: XPointer location set support
+    
+    Key enums:
+    - xmlXPathOp: Operation codes for compiled expressions
+    - xmlXPathAxisVal: XPath axes (child, parent, ancestor, etc.)
+    - xmlXPathTestVal: Node test types (name, type, namespace)
+    - xmlXPathTypeVal: XML node types for testing
+    
+    Features:
+    - Complete XPath 1.0 specification support
+    - Expression compilation for performance
+    - All XPath axes (child, parent, ancestor, descendant, etc.)
+    - Node tests (name, type, namespace wildcards)
+    - Predicates and filtering
+    - Standard XPath function library
+    - Custom function and variable registration
+    - Object caching for memory efficiency
+    - Node set sorting and deduplication
+    - Location sets for XPointer support
+    - Streaming XPath (when pattern module available)
+    - Thread-safe evaluation contexts
+    - Comprehensive error reporting
+    - Debug dumping capabilities
+    
+    Implementation notes:
+    - Recursive descent parser for XPath syntax
+    - Tree-walking evaluator with axis optimization
+    - Memory-efficient node set operations
+    - Floating-point arithmetic with NaN/Infinity support
+    - In Rust: use nom for parsing, enum-based AST
+    - Iterator patterns for axis traversal
+    - Arena allocation for temporary objects

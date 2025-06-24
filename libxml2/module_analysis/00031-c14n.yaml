@@ -1,0 +1,73 @@
+module:
+  name: c14n
+  description: "W3C XML Canonicalization (C14N) implementation for cryptographic applications"
+  estimated_loc: 1892
+  c_files:
+    - c14n.c
+  header_files:
+    - include/libxml/c14n.h
+  key_functions:
+    - xmlC14NExecute
+    - xmlC14NDocSave
+    - xmlC14NDocSaveTo
+    - xmlC14NDocDumpMemory
+    - xmlC14NDocSaveCtxtInit
+    - xmlC14NDocSaveFinalize
+    - xmlC14NIsVisibleCallback
+    - xmlC14NProcessNamespaces
+    - xmlC14NAttrsCompare
+    - xmlC14NProcessAttrs
+    - xmlC14NCheckNamespacesWalker
+    - xmlC14NVisibleNsStackFind
+    - xmlC14NVisibleNsStackAdd
+    - xmlC14NVisibleNsStackShift
+    - xmlC14NNodeDataIsVisible
+    - xmlC14NProcessNode
+    - xmlC14NProcessNodeList
+    - xmlC14NNormalizeString
+  dependencies:
+    - tree
+    - parser-internals
+    - uri
+    - xpath
+    - xmlmemory
+    - error
+    - xmlio
+  api_overview: |
+    Implements W3C XML Canonicalization (C14N) specifications for creating
+    standardized, unambiguous XML representations essential for digital
+    signatures and cryptographic hashing.
+    
+    Key structures:
+    - xmlC14NCtx: Canonicalization context with processing state
+    - xmlC14NVisibleNsStack: Namespace visibility stack management
+    - xmlC14NIsVisibleCallback: Node visibility determination function
+    
+    Key enums:
+    - xmlC14NPosition: Processing position relative to document element
+    - xmlC14NNormalizationMode: String normalization rules for different contexts
+    - xmlC14NMode: Canonicalization algorithm variants
+    
+    Features:
+    - Canonical XML 1.0 and 1.1 support
+    - Exclusive XML Canonicalization 1.0
+    - Node-set canonicalization with visibility callbacks
+    - Proper namespace inheritance and propagation
+    - Attribute ordering and normalization
+    - Character data normalization
+    - Comment inclusion/exclusion options
+    - Processing instruction handling
+    - Digital signature compatibility
+    - XPath node-set integration
+    - Inclusive namespace prefix lists for exclusive C14N
+    - Document subset canonicalization
+    - Memory and streaming output support
+    
+    Implementation notes:
+    - Recursive tree traversal with namespace stack
+    - Attribute sorting for deterministic output
+    - Character escaping based on XML context
+    - Namespace visibility tracking for inheritance
+    - In Rust: deterministic serialization with sorting
+    - Cryptographic hash compatibility
+    - Standards-compliant byte-for-byte output

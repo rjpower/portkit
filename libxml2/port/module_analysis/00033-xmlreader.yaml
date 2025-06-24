@@ -1,0 +1,31 @@
+module:
+  name: xmlreader
+  description: XML streaming reader (pull parser) API.
+  estimated_loc: 5407
+  c_files:
+  - xmlreader.c
+  header_files:
+  - include/libxml/xmlreader.h
+  key_functions:
+  - xmlReaderForFile
+  - xmlTextReaderRead
+  - xmlTextReaderGetAttribute
+  dependencies:
+  - xmlio
+  - xmlbuf
+  - xmlstring
+  - xmltree
+  - xmlparser
+  - xmlrelaxng
+  - xmlschemas
+  - xmlpattern
+  - xmlerror
+  - xmlsax
+  api_overview: The xmlreader module implements the xmlTextReader streaming node API,
+    providing a forward-only, read-only cursor over an XML stream. It maps this high-level
+    API onto libxml2's existing SAX-based parsing routines, optionally building a
+    minimal tree structure as it progresses. Its primary responsibility is to enable
+    efficient, low-memory consumption processing of XML documents by allowing applications
+    to read XML data sequentially without loading the entire document into memory.
+    It supports various input sources (files, memory, I/O callbacks) and integrates
+    with validation (DTD, RelaxNG, XML Schema) and XInclude processing.

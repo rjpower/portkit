@@ -1,0 +1,23 @@
+module:
+  name: xmlschematron
+  description: Schematron validation engine.
+  estimated_loc: 1990
+  c_files:
+  - schematron.c
+  header_files:
+  - include/libxml/schematron.h
+  key_functions:
+  - xmlSchematronParse
+  - xmlSchematronNewValidCtxt
+  - xmlSchematronValidateDoc
+  dependencies:
+  - xmlstring
+  - xmltree
+  - xmlparser
+  - xmlerror
+  api_overview: The schematron module provides an implementation of the Schematron
+    schema validation specification. Its primary responsibility is to parse and compile
+    Schematron schemas (written in XML) into an internal representation, and then
+    use this compiled schema to validate XML instance documents. It identifies assertions
+    and reports based on XPath expressions defined within the schema, providing mechanisms
+    for reporting validation results.

@@ -1,0 +1,24 @@
+module:
+  name: xmlcatalog
+  description: XML Catalog support for resolving external entities.
+  estimated_loc: 3634
+  c_files:
+  - catalog.c
+  header_files:
+  - include/libxml/catalog.h
+  key_functions:
+  - xmlLoadCatalog
+  - xmlACatalogAdd
+  - xmlCatalogResolveURI
+  dependencies:
+  - xmlstring
+  - xmlparser
+  - xmlio
+  - xmltree
+  api_overview: The catalog module provides a generic set of routines for handling
+    XML and SGML catalogs. Its primary responsibility is to resolve external identifiers
+    (Public IDs, System IDs, and URIs) to local resources or alternative URIs based
+    on rules defined in catalog files. It implements the specifications from SGML
+    Open Technical Resolution TR9401:1997 and XML Catalogs Working Draft 06 August
+    2001, allowing applications to map external identifiers to local copies of DTDs,
+    schemas, or other resources, improving offline usability and network efficiency.

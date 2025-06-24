@@ -1,0 +1,51 @@
+module:
+  name: buf
+  description: "Dynamic buffer management for strings with modern xmlBuf and legacy xmlBuffer APIs"
+  estimated_loc: 1156
+  c_files:
+    - buf.c
+  header_files:
+    - include/libxml/tree.h
+    - include/private/buf.h
+  key_functions:
+    - xmlBufCreate
+    - xmlBufCreateMem
+    - xmlBufFree
+    - xmlBufEmpty
+    - xmlBufGrow
+    - xmlBufAdd
+    - xmlBufCat
+    - xmlBufContent
+    - xmlBufUse
+    - xmlBufAvail
+    - xmlBufDetach
+    - xmlBufferCreate
+    - xmlBufferFree
+    - xmlBufferAdd
+    - xmlBufferCat
+  dependencies:
+    - xmlstring
+  api_overview: |
+    Provides dynamic buffer management for string data with both modern (xmlBuf) 
+    and legacy (xmlBuffer) APIs. Handles memory allocation, growth, and efficient
+    string building operations.
+    
+    Key structures:
+    - _xmlBuf: Modern opaque buffer with 64-bit support and improved memory control
+    - _xmlBuffer: Legacy buffer structure for backward compatibility
+    
+    Features:
+    - Dynamic buffer growth with configurable limits
+    - Static buffer support (read-only)
+    - Memory usage tracking and limits
+    - Integration with parser input streams
+    - Backward compatibility with xmlBuffer API
+    - 64-bit size support in modern API
+    
+    Implementation notes:
+    - Modern xmlBuf API preferred for new code
+    - Legacy xmlBuffer maintained for compatibility
+    - Memory management through libxml2 allocator
+    - Efficient reallocation strategies
+    - Can be implemented in Rust using Vec<u8> or String
+    - Size limits and error handling important for security

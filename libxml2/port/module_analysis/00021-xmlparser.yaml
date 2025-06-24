@@ -1,0 +1,33 @@
+module:
+  name: xmlparser
+  description: Core XML parsing logic, including SAX and DOM building.
+  estimated_loc: 17175
+  c_files:
+  - parser.c
+  - parserInternals.c
+  header_files:
+  - include/libxml/parser.h
+  - include/private/parser.h
+  key_functions:
+  - xmlParseDocument
+  - xmlCreatePushParserCtxt
+  - xmlCtxtReadDoc
+  - xmlCtxtParseContent
+  dependencies:
+  - xmlstring
+  - xmldict
+  - xmltree
+  - xmlio
+  - xmlencoding
+  - xmlerror
+  - xmlvalid
+  - xmlpattern
+  - xmlcatalog
+  - xmlentities
+  - xmlsax
+  api_overview: The 'parser' module is the core XML 1.0 parser component of libxml2.
+    It is responsible for parsing XML documents, handling well-formedness checks,
+    and supporting namespaces. Validity checks are built on top of its SAX interfaces.
+    It manages input streams, character encoding detection and conversion, entity
+    expansion, and error reporting. This module forms the foundation for building
+    DOM trees (via SAX2.c) and performing validation (via valid.c).

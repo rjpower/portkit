@@ -1,0 +1,88 @@
+module:
+  name: relaxng
+  description: "RELAX NG schema validation engine with full compact and XML syntax support"
+  estimated_loc: 10403
+  c_files:
+    - relaxng.c
+  header_files:
+    - include/libxml/relaxng.h
+  key_functions:
+    - xmlRelaxNGFree
+    - xmlRelaxParserSetFlag
+    - xmlRelaxNGNewParserCtxt
+    - xmlRelaxNGNewMemParserCtxt
+    - xmlRelaxNGNewDocParserCtxt
+    - xmlRelaxNGFreeParserCtxt
+    - xmlRelaxNGParse
+    - xmlRelaxNGNewValidCtxt
+    - xmlRelaxNGFreeValidCtxt
+    - xmlRelaxNGValidateDoc
+    - xmlRelaxNGValidatePushElement
+    - xmlRelaxNGValidatePushCData
+    - xmlRelaxNGValidatePopElement
+    - xmlRelaxNGValidateFullElement
+    - xmlRelaxNGSetParserErrors
+    - xmlRelaxNGSetValidErrors
+    - xmlRelaxNGSetParserStructuredErrors
+    - xmlRelaxNGSetValidStructuredErrors
+    - xmlRelaxNGGetParserErrors
+    - xmlRelaxNGGetValidErrors
+    - xmlRelaxNGCleanupTypes
+    - xmlRelaxNGInitTypes
+    - xmlRelaxNGDump
+    - xmlRelaxNGDumpTree
+  dependencies:
+    - tree
+    - parser-internals
+    - hash
+    - uri
+    - xmlmemory
+    - error
+    - xmlautomata
+    - xmlregexp
+    - xmlschemastypes
+  api_overview: |
+    Implements RELAX NG schema validation with support for both XML syntax
+    and compact syntax. Provides pattern-based validation with powerful
+    content model compilation and efficient validation algorithms.
+    
+    Key structures:
+    - xmlRelaxNG: Compiled RELAX NG schema with grammars and definitions
+    - xmlRelaxNGDefine: Individual patterns (element, attribute, choice, etc.)
+    - xmlRelaxNGParserCtxt: Schema parsing context with state management
+    - xmlRelaxNGValidCtxt: Validation context for instance documents
+    - xmlRelaxNGGrammar: Grammar blocks with scoped definitions
+    - xmlRelaxNGDocument: External schema document handling
+    
+    Key enums:
+    - xmlRelaxNGCombine: Pattern combination behavior (choice, interleave)
+    - xmlRelaxNGType: Pattern types (element, attribute, choice, group, etc.)
+    
+    Features:
+    - Complete RELAX NG specification support
+    - Both XML and compact syntax parsing
+    - Pattern-based content models
+    - Data type validation integration
+    - External schema references (externalRef, include)
+    - Grammar modularity and scoping
+    - Named pattern definitions and references
+    - Choice and interleave content models
+    - Attribute patterns with data types
+    - Text patterns and mixed content
+    - Empty and notAllowed patterns
+    - Finite automata compilation for performance
+    - Streaming validation support
+    - Namespace handling
+    - Error recovery and detailed reporting
+    - Schema debugging and visualization
+    - Integration with XML Schema data types
+    
+    Implementation notes:
+    - Multi-pass schema compilation (parse, simplify, compile)
+    - Finite automata generation for content models
+    - Hash-based definition and reference resolution
+    - Memory-efficient pattern representation
+    - Backtracking validation with state management
+    - In Rust: enum-based pattern types
+    - Recursive descent pattern matching
+    - Builder pattern for schema construction

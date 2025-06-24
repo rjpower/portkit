@@ -1,0 +1,21 @@
+module:
+  name: xmlregexp
+  description: Regular expression engine used by XML Schema and other validation modules.
+  estimated_loc: 6331
+  c_files:
+  - xmlregexp.c
+  header_files:
+  - include/libxml/xmlregexp.h
+  key_functions:
+  - xmlRegexpCompile
+  - xmlRegexpExec
+  - xmlNewAutomata
+  dependencies:
+  - xmlstring
+  - xmlchvalid
+  api_overview: The xmlregexp module provides a generic and extensible Regular Expression
+    (RegExp) engine. Its primary responsibility is to compile and execute regular
+    expressions, specifically designed to support validation mechanisms found in XML-related
+    specifications such as XML 1.0 DTD validation, XML Schemas (Part 1 and Datatypes
+    Part 2), and RELAX-NG/TREX. It transforms a regular expression string into a finite
+    automaton for efficient matching.

@@ -1,0 +1,21 @@
+module:
+  name: xlink
+  description: XLink support.
+  estimated_loc: 165
+  c_files:
+  - xlink.c
+  header_files:
+  - include/libxml/xlink.h
+  key_functions:
+  - xlinkSetDefaultDetect
+  - xlinkIsLink
+  dependencies:
+  - xmltree
+  - xmlstring
+  api_overview: The xlink module is an unfinished and deprecated component of libxml2,
+    primarily designed for detecting and processing XML XLinks and HTML simple links
+    within XML and HTML documents. Its main responsibility is to identify elements
+    that conform to XLink specifications or common HTML linking patterns and, if configured,
+    invoke user-defined callbacks upon detection. It aims to provide a programmatic
+    interface for applications to react to hyperlinks found during document parsing.
+    Due to its deprecated status, it is not recommended for new development.

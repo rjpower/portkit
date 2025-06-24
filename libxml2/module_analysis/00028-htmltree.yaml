@@ -1,0 +1,75 @@
+module:
+  name: htmltree
+  description: "HTML tree manipulation and serialization with HTML-specific output rules"
+  estimated_loc: 1278
+  c_files:
+    - HTMLtree.c
+  header_files:
+    - include/libxml/HTMLtree.h
+  key_functions:
+    - htmlGetMetaEncoding
+    - htmlSetMetaEncoding
+    - htmlNodeDump
+    - htmlNodeDumpFileFormat
+    - htmlDocDumpMemoryFormat
+    - htmlSaveFileFormat
+    - htmlNodeDumpFormatOutput
+    - htmlDocContentDumpOutput
+    - htmlDocContentDumpFormatOutput
+    - htmlNodeDumpOutput
+    - htmlAttrDumpOutput
+    - htmlNodeListDumpOutput
+    - htmlDtdDumpOutput
+    - htmlIsBooleanAttr
+    - htmlIsScriptAttribute
+    - htmlSaveFile
+    - htmlSaveFileEnc
+    - htmlDocDump
+    - htmlDocDumpMemory
+    - htmlNewDoc
+    - htmlNewDocNoDtd
+  dependencies:
+    - tree
+    - htmlparser
+    - xmlsave
+    - encoding
+    - xmlio
+    - buf
+    - xmlmemory
+    - error
+    - uri
+  api_overview: |
+    Provides HTML-specific tree manipulation and serialization functions
+    with proper handling of HTML rules for encoding, attributes, and
+    element-specific serialization requirements.
+    
+    Key structures:
+    - htmlMetaEncoding: Meta tag encoding information
+    - htmlMetaEncodingOffsets: Byte offsets for encoding strings
+    - xmlOutputBuffer: Output buffer with encoding conversion
+    
+    Features:
+    - HTML meta tag encoding inspection and modification
+    - HTML-specific serialization rules
+    - Boolean attribute handling (e.g., checked, disabled)
+    - Script attribute recognition and escaping
+    - URI attribute escaping
+    - HTML5 void element handling
+    - DOCTYPE serialization
+    - Multiple output formats (memory, file, buffer)
+    - Character encoding conversion during output
+    - Proper HTML entity escaping
+    - Namespace handling for XHTML
+    - Formatting options for readable output
+    - Integration with HTML parser element descriptions
+    - Support for HTML fragments
+    - CDATA section handling in script/style elements
+    
+    Implementation notes:
+    - HTML-specific serialization differs from XML
+    - Meta tag encoding detection and manipulation
+    - Boolean attributes serialized without values in HTML mode
+    - Special handling for script, style, and other raw content elements
+    - In Rust: HTML-specific serialization traits
+    - Builder pattern for HTML document construction
+    - Streaming serialization with proper encoding

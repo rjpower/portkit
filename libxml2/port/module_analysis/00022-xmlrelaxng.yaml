@@ -1,0 +1,25 @@
+module:
+  name: xmlrelaxng
+  description: RelaxNG validation engine.
+  estimated_loc: 10614
+  c_files:
+  - relaxng.c
+  header_files:
+  - include/libxml/relaxng.h
+  key_functions:
+  - xmlRelaxNGParse
+  - xmlRelaxNGNewValidCtxt
+  - xmlRelaxNGValidateDoc
+  dependencies:
+  - xmlstring
+  - xmldict
+  - xmltree
+  - xmlparser
+  - xmlerror
+  - xmlregexp
+  - xmlio
+  api_overview: This module provides functionality for parsing and validating XML
+    documents against Relax-NG schemas. It includes a parser to compile Relax-NG schemas
+    into an internal representation and a validator to check XML instances against
+    these compiled schemas, supporting both full document validation and progressive
+    validation.

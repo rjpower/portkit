@@ -1,0 +1,30 @@
+module:
+  name: htmlparser
+  description: HTML parsing and tree manipulation.
+  estimated_loc: 7344
+  c_files:
+  - HTMLparser.c
+  - HTMLtree.c
+  header_files:
+  - include/libxml/HTMLparser.h
+  - include/libxml/HTMLtree.h
+  key_functions:
+  - htmlParseDocument
+  - htmlReadDoc
+  - htmlNodeDump
+  dependencies:
+  - xmlstring
+  - xmlparser
+  - xmltree
+  - xmlsax
+  - xmlio
+  - xmlbuf
+  - xmlencoding
+  api_overview: The HTMLparser module is a core component of libxml2 responsible for
+    parsing HTML documents. It implements an HTML5-compliant tokenizer but uses a
+    custom, non-standard tree construction algorithm (not fully HTML5-compliant).
+    Its primary responsibility is to convert HTML input (from files, memory, or I/O
+    streams) into an in-memory tree structure (DOM) or to generate SAX events. It
+    also provides functionalities for serializing HTML documents back to various outputs,
+    including handling HTML-specific features like meta encoding tags and boolean
+    attributes. It aims to be robust in handling malformed HTML.

@@ -1,0 +1,26 @@
+module:
+  name: xmlwriter
+  description: XML streaming writer API for programmatic document creation.
+  estimated_loc: 4553
+  c_files:
+  - xmlwriter.c
+  header_files:
+  - include/libxml/xmlwriter.h
+  key_functions:
+  - xmlNewTextWriterFilename
+  - xmlTextWriterStartElement
+  - xmlTextWriterWriteAttribute
+  dependencies:
+  - xmlio
+  - xmlbuf
+  - xmlstring
+  - xmltree
+  - xmlparser
+  - xmllist
+  - xmlencoding
+  api_overview: The xmlwriter module provides a streaming API for programmatically
+    writing XML documents. It allows developers to construct XML by calling functions
+    for starting/ending elements, writing attributes, text, comments, processing instructions,
+    CDATA sections, and DTD declarations. It automatically manages XML well-formedness
+    and namespace handling. The module can write to various outputs, including files,
+    in-memory buffers, or directly build an xmlDoc tree.

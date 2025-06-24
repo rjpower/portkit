@@ -1,0 +1,20 @@
+module:
+  name: xmlthreads
+  description: Threading primitives (mutexes, RWMutexes).
+  estimated_loc: 504
+  c_files:
+  - threads.c
+  header_files:
+  - include/private/threads.h
+  - include/libxml/threads.h
+  key_functions:
+  - xmlInitThreads
+  - xmlMutexLock
+  - xmlRMutexLock
+  dependencies: []
+  api_overview: This module provides generic threading-related routines for libxml2,
+    offering synchronization primitives like simple and reentrant mutexes. It also
+    manages library-wide thread-safe initialization and cleanup, ensuring that global
+    resources are set up and torn down correctly in multi-threaded environments. It
+    abstracts away platform-specific threading APIs (POSIX threads, Windows Critical
+    Sections).

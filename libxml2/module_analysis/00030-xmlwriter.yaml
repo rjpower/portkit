@@ -1,0 +1,114 @@
+module:
+  name: xmlwriter
+  description: "Streaming XML writer API for programmatic XML document generation"
+  estimated_loc: 3816
+  c_files:
+    - xmlwriter.c
+  header_files:
+    - include/libxml/xmlwriter.h
+  key_functions:
+    - xmlNewTextWriter
+    - xmlNewTextWriterFilename
+    - xmlNewTextWriterDoc
+    - xmlFreeTextWriter
+    - xmlTextWriterStartDocument
+    - xmlTextWriterEndDocument
+    - xmlTextWriterStartElement
+    - xmlTextWriterEndElement
+    - xmlTextWriterWriteAttribute
+    - xmlTextWriterWriteString
+    - xmlTextWriterSetIndent
+    - xmlNewTextWriterMemory
+    - xmlNewTextWriterPushParser
+    - xmlNewTextWriterTree
+    - xmlTextWriterStartElementNS
+    - xmlTextWriterEndElement
+    - xmlTextWriterStartAttribute
+    - xmlTextWriterEndAttribute
+    - xmlTextWriterStartAttributeNS
+    - xmlTextWriterWriteAttributeNS
+    - xmlTextWriterWriteCDATA
+    - xmlTextWriterWriteComment
+    - xmlTextWriterWriteElement
+    - xmlTextWriterWriteElementNS
+    - xmlTextWriterWritePI
+    - xmlTextWriterWriteRaw
+    - xmlTextWriterWriteVFormatString
+    - xmlTextWriterWriteFormatString
+    - xmlTextWriterWriteFormatAttribute
+    - xmlTextWriterWriteFormatAttributeNS
+    - xmlTextWriterWriteFormatComment
+    - xmlTextWriterWriteFormatElement
+    - xmlTextWriterWriteFormatElementNS
+    - xmlTextWriterWriteFormatPI
+    - xmlTextWriterStartDTD
+    - xmlTextWriterEndDTD
+    - xmlTextWriterWriteDTD
+    - xmlTextWriterStartDTDElement
+    - xmlTextWriterEndDTDElement
+    - xmlTextWriterWriteDTDElement
+    - xmlTextWriterStartDTDAttlist
+    - xmlTextWriterEndDTDAttlist
+    - xmlTextWriterWriteDTDAttlist
+    - xmlTextWriterStartDTDEntity
+    - xmlTextWriterEndDTDEntity
+    - xmlTextWriterWriteDTDEntity
+    - xmlTextWriterWriteDTDExternalEntity
+    - xmlTextWriterWriteDTDExternalEntityContents
+    - xmlTextWriterWriteDTDInternalEntity
+    - xmlTextWriterWriteDTDNotation
+    - xmlTextWriterSetIndentString
+    - xmlTextWriterFlush
+  dependencies:
+    - tree
+    - parser-internals
+    - buf
+    - encoding
+    - xmlsave
+    - xmlmemory
+    - error
+    - uri
+    - sax2
+    - htmltree
+  api_overview: |
+    Provides a streaming API for generating well-formed XML documents
+    programmatically. Supports multiple output destinations and formats
+    with automatic character escaping and proper XML structure validation.
+    
+    Key structures:
+    - xmlTextWriter: Main writer context with output buffer and state
+    - xmlTextWriterStackEntry: Element/construct stack tracking
+    - xmlTextWriterNsStackEntry: Namespace declaration stack
+    - xmlOutputBuffer: Output destination abstraction
+    
+    Key enums:
+    - xmlTextWriterState: Writer state machine states
+    
+    Features:
+    - Streaming XML document generation
+    - Multiple output destinations (file, memory, buffer, DOM tree)
+    - Automatic character escaping and encoding
+    - Namespace support with prefix management
+    - Proper XML well-formedness validation
+    - Indentation and formatting options
+    - CDATA section writing
+    - Comment and processing instruction support
+    - DTD generation capabilities
+    - Element and attribute stack management
+    - Printf-style formatted output functions
+    - Self-closing tag optimization
+    - Raw content writing for special cases
+    - Document tree building while writing
+    - Push parser integration
+    - Compression support for file output
+    - Custom indentation strings
+    - Buffer flushing control
+    
+    Implementation notes:
+    - Stack-based element tracking for well-formedness
+    - State machine for valid operation sequences
+    - Automatic namespace declaration management
+    - Character escaping based on context (element, attribute, etc.)
+    - In Rust: Builder pattern with type-safe API
+    - Streaming writer with proper resource management
+    - Event-driven XML generation

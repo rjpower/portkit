@@ -1,0 +1,23 @@
+module:
+  name: xmlpattern
+  description: XML Pattern matching, used by schema validation.
+  estimated_loc: 2359
+  c_files:
+  - pattern.c
+  header_files:
+  - include/libxml/pattern.h
+  key_functions:
+  - xmlPatternCompileSafe
+  - xmlPatternMatch
+  - xmlFreePattern
+  dependencies:
+  - xmlstring
+  - xmldict
+  - xmltree
+  - xmlregexp
+  api_overview: The 'pattern' module in libxml2 provides functionality for compiling
+    and matching XPath-like patterns against XML nodes. It supports both traditional
+    tree-based matching for existing DOM nodes and a streaming interface for efficient,
+    incremental pattern evaluation during parsing or for large documents. This module
+    is crucial for features like XML Schema Identity Constraints (selectors and fields)
+    and general XPath-based node selection.

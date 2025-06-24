@@ -1,0 +1,23 @@
+module:
+  name: xmlstring
+  description: Core string manipulation utilities for xmlChar type.
+  estimated_loc: 1137
+  c_files:
+  - xmlstring.c
+  header_files:
+  - include/libxml/xmlstring.h
+  key_functions:
+  - xmlStrndup
+  - xmlStrcmp
+  - xmlStrlen
+  - xmlUTF8Size
+  dependencies: []
+  api_overview: The xmlstring module provides a comprehensive set of utility functions
+    for manipulating strings within the libxml2 library. Its primary responsibility
+    is to handle `xmlChar` strings, which are typically used for UTF-8 encoded XML
+    data. It offers functionalities analogous to standard C string functions (e.g.,
+    `strdup`, `strcmp`, `strcat`, `strstr`) but adapted for the `xmlChar` type, along
+    with specialized routines for UTF-8 character and string validation, length calculation,
+    and substring extraction based on character count rather than byte count. This
+    module is fundamental for all string operations within libxml2, ensuring correct
+    handling of multi-byte character encodings.

@@ -1,0 +1,47 @@
+module:
+  name: hash
+  description: "Generic hash table implementation with string keys and void* payloads"
+  estimated_loc: 1297
+  c_files:
+    - hash.c
+  header_files:
+    - include/libxml/hash.h
+  key_functions:
+    - xmlHashCreate
+    - xmlHashCreateDict
+    - xmlHashFree
+    - xmlHashAdd3
+    - xmlHashUpdateEntry3
+    - xmlHashLookup3
+    - xmlHashQLookup3
+    - xmlHashRemoveEntry3
+    - xmlHashScanFull
+    - xmlHashCopySafe
+    - xmlHashSize
+  dependencies:
+    - dict
+    - xmlstring
+  api_overview: |
+    Provides a generic hash table implementation using open addressing with Robin Hood
+    hashing for collision resolution. Supports up to three string components as
+    composite keys and stores arbitrary void* payloads.
+    
+    Key structures:
+    - xmlHashEntry: Hash table entry with hash value, keys, and payload
+    - _xmlHashTable: Hash table with storage array, dictionary integration, and metadata
+    
+    Features:
+    - Composite keys (up to 3 string components)
+    - QName (qualified name) support
+    - Optional dictionary integration for key interning
+    - Robin Hood hashing for even distribution
+    - Configurable deallocator functions
+    - Iterator/scanner support
+    - Deep copy functionality
+    
+    Implementation notes:
+    - Uses open addressing with linear probing
+    - Power-of-two sizing for efficient modulo operations
+    - Random seed for hash function security
+    - Can be implemented in Rust using HashMap or custom hash table
+    - Dictionary integration allows for memory-efficient key storage

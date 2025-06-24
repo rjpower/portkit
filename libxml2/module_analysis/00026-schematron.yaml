@@ -1,0 +1,79 @@
+module:
+  name: schematron
+  description: "Schematron rule-based validation with XPath assertions and reports"
+  estimated_loc: 1664
+  c_files:
+    - schematron.c
+  header_files:
+    - include/libxml/schematron.h
+  key_functions:
+    - xmlSchematronFree
+    - xmlSchematronNewParserCtxt
+    - xmlSchematronNewMemParserCtxt
+    - xmlSchematronNewDocParserCtxt
+    - xmlSchematronFreeParserCtxt
+    - xmlSchematronParse
+    - xmlSchematronNewValidCtxt
+    - xmlSchematronFreeValidCtxt
+    - xmlSchematronValidateDoc
+    - xmlSchematronSetParserErrors
+    - xmlSchematronSetValidErrors
+    - xmlSchematronSetParserStructuredErrors
+    - xmlSchematronSetValidStructuredErrors
+    - xmlSchematronGetParserErrors
+    - xmlSchematronGetValidErrors
+    - xmlSchematronValidCtxtGetOptions
+    - xmlSchematronValidCtxtSetOptions
+    - xmlSchematronSetValidOptions
+    - xmlSchematronValidateStream
+    - xmlSchematronValidatePushElement
+    - xmlSchematronValidatePopElement
+  dependencies:
+    - tree
+    - parser-internals
+    - uri
+    - xpath
+    - pattern
+    - xmlmemory
+    - error
+  api_overview: |
+    Implements ISO Schematron rule-based validation using XPath expressions
+    for complex business rule validation beyond structural constraints.
+    Provides pattern-based rules with assertions and reports.
+    
+    Key structures:
+    - xmlSchematron: Compiled Schematron schema with patterns and rules
+    - xmlSchematronRule: Rule definition with context and tests
+    - xmlSchematronTest: Individual assertion or report test
+    - xmlSchematronParserCtxt: Schema parsing context
+    - xmlSchematronValidCtxt: Validation context for instance documents
+    - xmlSchematronPattern: Schema pattern grouping rules
+    
+    Key enums:
+    - xmlSchematronTestType: Test types (assert, report)
+    
+    Features:
+    - Complete ISO Schematron specification support
+    - XPath 1.0 expression evaluation for rules
+    - Pattern-based rule organization
+    - Context-sensitive rule application
+    - Assert tests (must be true) and report tests (informational)
+    - Let variables for expression reuse
+    - Rich error and warning reporting
+    - Custom diagnostic messages
+    - Namespace support in rules
+    - Phase-based validation (if implemented)
+    - Abstract patterns and rules
+    - Query binding for different XPath engines
+    - Integration with XPath pattern matching
+    - Streaming validation capabilities
+    - SVRL (Schematron Validation Report Language) output
+    
+    Implementation notes:
+    - XPath expression compilation for performance
+    - Pattern-based context matching for rule selection
+    - Rule evaluation with context node iteration
+    - Memory-efficient rule and test representation
+    - In Rust: XPath crate integration
+    - Rule engine with context-based dispatch
+    - Functional programming patterns for rule evaluation

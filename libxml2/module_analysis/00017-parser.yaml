@@ -1,0 +1,122 @@
+module:
+  name: parser
+  description: "Main XML parser implementation with SAX and DOM interfaces"
+  estimated_loc: 13692
+  c_files:
+    - parser.c
+  header_files:
+    - include/libxml/parser.h
+  key_functions:
+    - xmlParseDocument
+    - xmlParseElement
+    - xmlParseContent
+    - xmlParseAttribute
+    - xmlParseStartTag
+    - xmlParseEndTag
+    - xmlParseCharData
+    - xmlParseComment
+    - xmlParsePI
+    - xmlParseCDSect
+    - xmlParseReference
+    - xmlParseEntityRef
+    - xmlParsePEReference
+    - xmlParseDocTypeDecl
+    - xmlParseElementDecl
+    - xmlParseAttributeListDecl
+    - xmlParseEntityDecl
+    - xmlParseNotationDecl
+    - xmlParseExternalSubset
+    - xmlParseInternalSubset
+    - xmlParseXMLDecl
+    - xmlParseTextDecl
+    - xmlParseVersionInfo
+    - xmlParseEncodingDecl
+    - xmlParseSDDecl
+    - xmlCreatePushParserCtxt
+    - xmlCreateIOParserCtxt
+    - xmlCreateDocParserCtxt
+    - xmlCreateMemoryParserCtxt
+    - xmlCreateURLParserCtxt
+    - xmlParseChunk
+    - xmlStopParser
+    - xmlCtxtReset
+    - xmlCtxtResetPush
+    - xmlCtxtSetOptions
+    - xmlCtxtUseOptions
+    - xmlCtxtParseDocument
+    - xmlSAXParseDoc
+    - xmlSAXParseFile
+    - xmlSAXParseMemory
+    - xmlReadDoc
+    - xmlReadFile
+    - xmlReadMemory
+    - xmlReadFd
+    - xmlReadIO
+    - xmlCtxtReadDoc
+    - xmlCtxtReadFile
+    - xmlCtxtReadMemory
+    - xmlCtxtReadFd
+    - xmlCtxtReadIO
+    - xmlParseBalancedChunkMemory
+    - xmlParseInNodeContext
+    - xmlHasFeature
+    - xmlScanName
+    - xmlParseName
+    - xmlParseNmtoken
+    - xmlParseEntityValue
+    - xmlParseSystemLiteral
+    - xmlParsePubidLiteral
+    - xmlParseCharRef
+    - xmlStringDecodeEntities
+    - xmlStringLenDecodeEntities
+  dependencies:
+    - parser-internals
+    - tree
+    - entities
+    - xmlio
+    - encoding
+    - buf
+    - xmlstring
+    - chvalid
+    - dict
+    - hash
+    - xmlmemory
+    - error
+    - uri
+  api_overview: |
+    Implements the complete XML parser with both SAX (event-based) and DOM
+    (tree-based) parsing interfaces. Handles all XML constructs including
+    elements, attributes, text, comments, processing instructions, CDATA,
+    DTD declarations, and entity references.
+    
+    Key structures:
+    - All structures from parser-internals module
+    - SAX handler callback structures
+    
+    Features:
+    - Complete XML 1.0 specification compliance
+    - Namespace support
+    - DTD validation
+    - Entity processing (internal/external, general/parameter)
+    - Push and pull parsing modes
+    - Streaming parser with xmlParseChunk
+    - Multiple input sources (file, memory, URL, FD, custom I/O)
+    - Incremental parsing support
+    - Error recovery mechanisms
+    - Configurable parsing options
+    - SAX callback interface for event-driven parsing
+    - DOM tree building
+    - Character reference processing
+    - Encoding declaration handling
+    - Well-formedness checking
+    
+    Implementation notes:
+    - State machine-based parsing
+    - Recursive descent parser for complex constructs
+    - Character-by-character processing
+    - Lookahead for parsing decisions
+    - Comprehensive error reporting with location info
+    - Memory-efficient streaming support
+    - In Rust: use nom parser combinator or similar
+    - Event-driven architecture translates well to iterator patterns
+    - State machines map well to Rust enums

@@ -1,0 +1,26 @@
+module:
+  name: xmlxpath
+  description: XPath 1.0 implementation.
+  estimated_loc: 12081
+  c_files:
+  - xpath.c
+  header_files:
+  - include/libxml/xpath.h
+  key_functions:
+  - xmlXPathNewContext
+  - xmlXPathEval
+  - xmlXPathRegisterFunc
+  dependencies:
+  - xmlstring
+  - xmldict
+  - xmltree
+  - xmlerror
+  - xmlhash
+  - xmlregexp
+  api_overview: The xpath module provides a comprehensive implementation of the XML
+    Path Language (XPath) as defined by the W3C Recommendation. Its primary responsibility
+    is to enable addressing and selecting parts of an XML document using XPath expressions.
+    It supports parsing, compiling, and evaluating XPath expressions against an XML
+    document, managing the evaluation context, and handling various XPath data types
+    (node-sets, booleans, numbers, strings). It is designed to be used by other modules
+    like XSLT and XPointer.

@@ -1,0 +1,48 @@
+module:
+  name: threads
+  description: "Threading primitives and library initialization/cleanup"
+  estimated_loc: 504
+  c_files:
+    - threads.c
+  header_files:
+    - include/libxml/threads.h
+    - include/private/threads.h
+  key_functions:
+    - xmlNewMutex
+    - xmlFreeMutex
+    - xmlMutexLock
+    - xmlMutexUnlock
+    - xmlNewRMutex
+    - xmlFreeRMutex
+    - xmlRMutexLock
+    - xmlRMutexUnlock
+    - xmlLockLibrary
+    - xmlUnlockLibrary
+    - xmlInitParser
+    - xmlCleanupParser
+  dependencies:
+    - xmlmemory
+    - error
+  api_overview: |
+    Provides threading primitives for libxml2 and manages library-wide initialization
+    and cleanup. Essential for thread-safe operation of the library.
+    
+    Key structures:
+    - xmlMutex: Simple non-reentrant mutex wrapper
+    - xmlRMutex: Reentrant mutex with lock counting
+    
+    Features:
+    - Simple and reentrant mutex implementations
+    - Global library lock for shared resources
+    - Thread-safe library initialization (xmlInitParser)
+    - Library cleanup (xmlCleanupParser)
+    - Platform abstraction (POSIX/Win32)
+    - One-time initialization guards
+    
+    Implementation notes:
+    - Wraps platform-specific threading APIs
+    - Global library state protection
+    - Reentrant mutexes support lock counting
+    - xmlInitParser is idempotent and thread-safe
+    - In Rust: use std::sync::{Mutex, RwLock}, std::sync::Once for initialization
+    - Consider parking_lot for better performance

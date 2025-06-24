@@ -1,0 +1,23 @@
+module:
+  name: nanohttp
+  description: Simple HTTP client for resource loading.
+  estimated_loc: 305
+  c_files:
+  - nanohttp.c
+  header_files:
+  - include/libxml/nanohttp.h
+  key_functions:
+  - xmlNanoHTTPFetch
+  - xmlIOHTTPMatch
+  - xmlIOHTTPRead
+  dependencies: []
+  api_overview: The nanohttp module formerly provided a minimal HTTP client implementation
+    for libxml2, used for fetching resources like external DTDs or schemas. As of
+    libxml2 version 2.15, the actual HTTP client functionality has been removed. This
+    module now serves solely as a collection of ABI (Application Binary Interface)
+    compatibility stubs. All public functions within this module are deprecated and
+    return default 'failure' values (e.g., NULL, -1, 0) without performing any network
+    operations. Its primary purpose is to allow applications compiled against older
+    libxml2 versions to link successfully, even if they call these deprecated HTTP
+    functions, preventing crashes due to missing symbols. New development should not
+    use these functions.

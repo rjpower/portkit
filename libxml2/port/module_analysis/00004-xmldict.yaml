@@ -1,0 +1,21 @@
+module:
+  name: xmldict
+  description: Dictionary/hash table implementation for string interning.
+  estimated_loc: 1026
+  c_files:
+  - dict.c
+  header_files:
+  - include/libxml/dict.h
+  key_functions:
+  - xmlDictCreate
+  - xmlDictFree
+  - xmlDictLookupHashed
+  dependencies:
+  - xmlstring
+  api_overview: The 'dict' module provides a string dictionary (interning) mechanism
+    within libxml2. Its primary responsibility is to store and manage a collection
+    of unique strings, ensuring that identical strings are represented by the same
+    memory address. This approach significantly reduces memory consumption by avoiding
+    duplicate string allocations and enables highly efficient string comparisons (pointer
+    equality). It solves the problem of redundant string storage and slow string comparisons
+    in XML parsing and manipulation.

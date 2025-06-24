@@ -1,0 +1,53 @@
+module:
+  name: uri
+  description: "URI parsing, manipulation, and normalization according to RFC 3986"
+  estimated_loc: 2777
+  c_files:
+    - uri.c
+  header_files:
+    - include/libxml/uri.h
+  key_functions:
+    - xmlCreateURI
+    - xmlFreeURI
+    - xmlParseURI
+    - xmlParseURISafe
+    - xmlParseURIReference
+    - xmlParseURIRaw
+    - xmlSaveUri
+    - xmlPrintURI
+    - xmlBuildURI
+    - xmlBuildURISafe
+    - xmlNormalizeURIPath
+    - xmlURIEscape
+    - xmlURIEscapeStr
+    - xmlURIUnescapeString
+    - xmlCanonicPath
+  dependencies:
+    - xmlstring
+    - xmlmemory
+    - error
+  api_overview: |
+    Provides comprehensive URI parsing, manipulation, and normalization functionality
+    according to RFC 3986. Handles absolute and relative URIs, path normalization,
+    percent-encoding/decoding, and URI resolution.
+    
+    Key structures:
+    - xmlURI: Parsed URI with components (scheme, authority, path, query, fragment)
+    
+    Features:
+    - RFC 3986 compliant URI parsing
+    - URI component extraction and manipulation
+    - Relative URI resolution against base URIs
+    - Path normalization (. and .. resolution)
+    - Percent-encoding and unescaping
+    - URI canonicalization
+    - IPv6 address support
+    - Error-safe parsing variants
+    
+    Implementation notes:
+    - Comprehensive percent-encoding handling
+    - Authority parsing (user, server, port)
+    - Path normalization removes redundant segments
+    - Handles both hierarchical and opaque URIs
+    - In Rust: use url crate for RFC 3986 compliance
+    - Consider percent-encoding crate for escaping utilities

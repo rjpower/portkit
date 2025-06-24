@@ -1,0 +1,20 @@
+module:
+  name: xmlhash
+  description: Generic hash table implementation.
+  estimated_loc: 1297
+  c_files:
+  - hash.c
+  header_files:
+  - include/libxml/hash.h
+  key_functions:
+  - xmlHashCreate
+  - xmlHashFree
+  - xmlHashLookup3
+  dependencies:
+  - xmldict
+  - xmlstring
+  api_overview: This module implements a hash table with open addressing, linear probing,
+    and Robin Hood reordering. It provides functionalities for storing and retrieving
+    arbitrary data (payloads) using one, two, or three string keys. It can optionally
+    integrate with the libxml dictionary module (xmlDict) to optimize string key storage
+    and reduce memory usage.

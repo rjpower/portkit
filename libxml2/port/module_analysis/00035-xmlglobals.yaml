@@ -1,0 +1,26 @@
+module:
+  name: xmlglobals
+  description: Manages global state and default settings for libxml2.
+  estimated_loc: 1130
+  c_files:
+  - globals.c
+  header_files:
+  - include/libxml/globals.h
+  key_functions:
+  - xmlInitGlobals
+  - xmlCleanupGlobals
+  - xmlCheckThreadLocalStorage
+  dependencies:
+  - xmlio
+  - xmlerror
+  - xmltree
+  - xmlcatalog
+  - xmlbuf
+  - xmlthreads
+  api_overview: The 'globals' module is responsible for defining and managing the
+    set of global variables used by the libxml2 library. Its primary function is to
+    provide thread-local storage (TLS) for these variables, ensuring thread-safety
+    in multi-threaded applications. Many of the direct API functions for setting these
+    globals are deprecated, with the library moving towards per-parser options or
+    direct per-thread function calls. It centralizes configuration for various library
+    aspects like parser defaults, error handling, memory allocation, and I/O functions.

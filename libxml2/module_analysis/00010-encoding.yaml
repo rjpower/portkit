@@ -1,0 +1,52 @@
+module:
+  name: encoding
+  description: "Character encoding detection, parsing, and conversion"
+  estimated_loc: 3002
+  c_files:
+    - encoding.c
+  header_files:
+    - include/libxml/encoding.h
+    - include/private/enc.h
+  key_functions:
+    - xmlDetectCharEncoding
+    - xmlParseCharEncoding
+    - xmlGetCharEncodingName
+    - xmlCreateCharEncodingHandler
+    - xmlLookupCharEncodingHandler
+    - xmlCharEncNewCustomHandler
+    - xmlCharEncInFunc
+    - xmlCharEncOutFunc
+    - xmlCharEncCloseFunc
+    - xmlByteConsumed
+  dependencies:
+    - xmlstring
+    - chvalid
+    - xmlmemory
+    - error
+    - buf
+  api_overview: |
+    Handles character encoding detection, parsing, and conversion for libxml2.
+    Converts between various encodings and libxml2's internal UTF-8 representation.
+    Supports built-in encodings and can integrate with iconv/ICU for broader support.
+    
+    Key structures:
+    - xmlCharEncodingHandler: Encoding conversion handler with input/output functions
+    
+    Key enums:
+    - xmlCharEncoding: Known character encodings (UTF-8, UTF-16, ISO-8859-1, etc.)
+    - xmlCharEncError: Conversion error codes
+    - xmlCharEncFlags: Conversion direction flags (input/output/HTML)
+    
+    Features:
+    - Encoding detection from BOM and content analysis
+    - Custom encoding handler registration
+    - Built-in encodings (UTF-8, UTF-16, ASCII, ISO-8859-1)
+    - External library integration (iconv, ICU)
+    - HTML-specific encoding handling
+    
+    Implementation notes:
+    - UTF-8 is internal representation
+    - BOM detection for UTF-16/UTF-32
+    - Case-insensitive encoding name parsing
+    - In Rust: use encoding_rs crate for character encoding
+    - UTF-8 validation and conversion can use std library

@@ -1,0 +1,101 @@
+module:
+  name: xmlschemas
+  description: "XML Schema (XSD) validation engine with complete W3C XML Schema support"
+  estimated_loc: 29084
+  c_files:
+    - xmlschemas.c
+  header_files:
+    - include/libxml/xmlschemas.h
+    - include/libxml/schemasInternals.h
+  key_functions:
+    - xmlSchemaNewParserCtxt
+    - xmlSchemaParse
+    - xmlSchemaFree
+    - xmlSchemaNewValidCtxt
+    - xmlSchemaValidateDoc
+    - xmlSchemaFreeValidCtxt
+    - xmlSchemaSetParserErrors
+    - xmlSchemaSetValidErrors
+    - xmlSchemaNewMemParserCtxt
+    - xmlSchemaNewDocParserCtxt
+    - xmlSchemaFreeParserCtxt
+    - xmlSchemaValidateFile
+    - xmlSchemaValidateStream
+    - xmlSchemaValidateOneElement
+    - xmlSchemaIsValid
+    - xmlSchemaSetValidOptions
+    - xmlSchemaGetValidErrors
+    - xmlSchemaSetParserStructuredErrors
+    - xmlSchemaSetValidStructuredErrors
+    - xmlSchemaValidCtxtGetOptions
+    - xmlSchemaValidCtxtGetParserCtxt
+    - xmlSchemaValidateSetFilename
+    - xmlSchemaCheckFacet
+    - xmlSchemaFreeFacet
+    - xmlSchemaNewFacet
+  dependencies:
+    - tree
+    - parser-internals
+    - hash
+    - uri
+    - dict
+    - xmlmemory
+    - error
+    - xmlregexp
+    - xmlautomata
+    - pattern
+    - encoding
+    - xmlio
+    - xmlreader
+    - xmlschemastypes
+  api_overview: |
+    Implements complete W3C XML Schema Definition (XSD) 1.0 specification
+    including schema parsing, compilation, and instance document validation
+    with full support for complex types, identity constraints, and imports.
+    
+    Key structures:
+    - xmlSchemaParserCtxt: Schema parsing context with construction state
+    - xmlSchemaValidCtxt: Validation context for instance documents
+    - xmlSchemaBasicItem: Base type for all schema components
+    - xmlSchemaType: Type definitions (simple and complex)
+    - xmlSchemaElement: Element declarations
+    - xmlSchemaAttribute: Attribute declarations
+    - xmlSchemaNodeInfo: Per-element validation state tracking
+    - xmlSchemaBucket: Individual schema documents in schema set
+    - xmlSchemaConstructionCtxt: Multi-document schema construction
+    
+    Key enums:
+    - xmlSchemaTypeType: Schema component types (element, type, attribute, etc.)
+    - xmlSchemaWhitespaceValueType: Whitespace processing rules
+    - xmlSchemaBucketType: Schema document relationships (import, include, redefine)
+    
+    Features:
+    - Complete XSD 1.0 specification compliance
+    - Schema document parsing and compilation
+    - Multi-document schema sets (import, include, redefine)
+    - Simple and complex type validation
+    - Content model validation with finite automata
+    - Identity constraint validation (unique, key, keyref)
+    - Facet-based simple type validation
+    - Substitution group support
+    - Abstract types and elements
+    - Nillable elements
+    - Default and fixed values
+    - Union and list types
+    - Wildcard processing (any, anyAttribute)
+    - Namespace validation
+    - Error collection and reporting
+    - Streaming validation support
+    - XPath-based identity constraints
+    - Schema location hints
+    - Type derivation by extension and restriction
+    
+    Implementation notes:
+    - Multi-phase compilation (parsing, construction, compilation)
+    - Finite automata for content model validation
+    - Hash-based component lookup for performance
+    - Memory-efficient schema representation
+    - Identity constraint evaluation with XPath
+    - In Rust: enum-based schema components
+    - Visitor pattern for validation traversal
+    - Builder pattern for schema construction

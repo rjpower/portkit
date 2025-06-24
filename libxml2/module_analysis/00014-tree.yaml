@@ -1,0 +1,108 @@
+module:
+  name: tree
+  description: "Core XML tree manipulation and document model implementation"
+  estimated_loc: 8914
+  c_files:
+    - tree.c
+    - timsort.h
+  header_files:
+    - include/libxml/tree.h
+    - include/private/tree.h
+  key_functions:
+    - xmlNewDoc
+    - xmlFreeDoc
+    - xmlNewNode
+    - xmlNewDocNode
+    - xmlNewText
+    - xmlNewComment
+    - xmlNewCDataBlock
+    - xmlFreeNode
+    - xmlFreeNodeList
+    - xmlAddChild
+    - xmlAddSibling
+    - xmlUnlinkNode
+    - xmlReplaceNode
+    - xmlCopyNode
+    - xmlCopyNodeList
+    - xmlNodeGetContent
+    - xmlNodeSetContent
+    - xmlGetProp
+    - xmlSetProp
+    - xmlUnsetProp
+    - xmlHasProp
+    - xmlNewNs
+    - xmlSearchNs
+    - xmlSearchNsByHref
+    - xmlFreeNs
+    - xmlReconciliateNs
+    - xmlValidateNCName
+    - xmlValidateQName
+    - xmlValidateName
+    - xmlSplitQName2
+    - xmlSplitQName3
+    - xmlBuildQName
+    - xmlDocSetRootElement
+    - xmlDocGetRootElement
+    - xmlGetLineNo
+    - xmlGetNodePath
+    - xmlNodeIsText
+    - xmlIsBlankNode
+    - xmlTextMerge
+    - xmlTextConcat
+    - xmlSetTreeDoc
+    - xmlSetListDoc
+    - xmlDOMWrapNewCtxt
+    - xmlDOMWrapFreeCtxt
+    - xmlDOMWrapRemoveNode
+    - xmlDOMWrapReconcileNamespaces
+    - xmlDOMWrapCloneNode
+    - xmlDOMWrapAdoptNode
+  dependencies:
+    - xmlstring
+    - chvalid
+    - dict
+    - hash
+    - buf
+    - xmlmemory
+    - error
+    - entities
+    - uri
+  api_overview: |
+    Implements the core XML document model with DOM-style tree manipulation.
+    Provides the fundamental data structures (xmlDoc, xmlNode, xmlAttr, xmlNs)
+    and operations for creating, modifying, and navigating XML documents.
+    
+    Key structures:
+    - xmlDoc: Complete XML document with metadata and root element
+    - xmlNode: Generic XML node (element, text, comment, CDATA, etc.)
+    - xmlAttr: XML attribute with name, value, and namespace
+    - xmlNs: XML namespace declaration
+    - xmlDtd: Document Type Definition
+    - xmlBuffer: Legacy buffer for string building
+    - xmlDOMWrapCtxt: Context for DOM manipulation operations
+    
+    Key enums:
+    - xmlElementType: Node types (element, text, comment, etc.)
+    - xmlBufferAllocationScheme: Buffer allocation strategies (deprecated)
+    
+    Features:
+    - Complete DOM tree implementation
+    - Namespace handling and reconciliation
+    - Attribute management
+    - Node manipulation (add, remove, copy, move)
+    - QName validation and splitting
+    - Content extraction and modification
+    - Tree walking and navigation
+    - Node serialization
+    - Memory management with callbacks
+    - DOM wrapper operations for external integration
+    
+    Implementation notes:
+    - Central to all libxml2 operations
+    - Reference counted documents
+    - Namespace-aware operations
+    - Memory callbacks for custom allocation
+    - Dict integration for string interning
+    - Support for both XML and HTML trees
+    - In Rust: define node enums and tree structures
+    - Use Rc/RefCell for shared ownership or arena allocation

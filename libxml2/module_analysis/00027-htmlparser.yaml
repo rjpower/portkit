@@ -1,0 +1,100 @@
+module:
+  name: htmlparser
+  description: "HTML5-compliant parser with tokenization and tree construction"
+  estimated_loc: 6321
+  c_files:
+    - HTMLparser.c
+  header_files:
+    - include/libxml/HTMLparser.h
+  key_functions:
+    - htmlInitAutoClose
+    - htmlTagLookup
+    - htmlAutoCloseTag
+    - htmlIsAutoClosed
+    - htmlIsScriptAttribute
+    - htmlParseDocument
+    - htmlParseElement
+    - htmlParseCharData
+    - htmlParseComment
+    - htmlParseScript
+    - htmlParseStartTag
+    - htmlParseEndTag
+    - htmlParseEntityRef
+    - htmlParseCharRef
+    - htmlParseDocTypeDecl
+    - htmlCreatePushParserCtxt
+    - htmlCreateFileParserCtxt
+    - htmlCreateMemoryParserCtxt
+    - htmlCtxtReset
+    - htmlCtxtSetOptions
+    - htmlCtxtUseOptions
+    - htmlFreeParserCtxt
+    - htmlNewParserCtxt
+    - htmlParseChunk
+    - htmlStopParser
+    - htmlSAXParseDoc
+    - htmlSAXParseFile
+    - htmlParseDoc
+    - htmlParseFile
+    - htmlReadDoc
+    - htmlReadFile
+    - htmlReadMemory
+    - htmlReadFd
+    - htmlReadIO
+    - htmlCtxtReadDoc
+    - htmlCtxtReadFile
+    - htmlCtxtReadMemory
+    - htmlCtxtReadFd
+    - htmlCtxtReadIO
+    - htmlHandleOmittedElem
+  dependencies:
+    - tree
+    - parser-internals
+    - entities
+    - encoding
+    - xmlio
+    - uri
+    - xmlmemory
+    - error
+    - htmltree
+  api_overview: |
+    Implements HTML5-compliant parsing with robust error recovery and
+    tree construction. Handles HTML-specific rules like tag omission,
+    auto-closing, and lenient parsing for real-world HTML content.
+    
+    Key structures:
+    - htmlParserCtxt: HTML parsing context with insertion modes
+    - htmlElemDesc: HTML element property descriptor
+    - htmlParserNodeInfo: Positional information for nodes
+    - htmlSAXHandler: HTML-specific SAX event handlers
+    
+    Key enums:
+    - htmlInsertMode: Tree construction insertion contexts
+    - Content type flags: Element content models (rawtext, script, rcdata)
+    
+    Features:
+    - HTML5 tokenization algorithm
+    - Custom tree construction (non-standard but practical)
+    - Automatic tag closing and omission handling
+    - Error recovery for malformed HTML
+    - Script and style content handling
+    - Character and entity reference processing
+    - DOCTYPE parsing and validation
+    - Push parser for streaming content
+    - SAX and DOM parsing interfaces
+    - Multiple input sources (file, memory, URL, FD, custom I/O)
+    - Configurable parsing options
+    - Position tracking for error reporting
+    - Integration with HTML tree construction
+    - Namespace handling for XHTML
+    - Encoding detection and conversion
+    - Fragment parsing support
+    
+    Implementation notes:
+    - State machine-based tokenization
+    - Stack-based tree construction with insertion modes
+    - Lenient parsing with automatic error correction
+    - HTML element property tables for behavior lookup
+    - In Rust: html5ever crate integration
+    - State machine with enum-based insertion modes
+    - Builder pattern for HTML tree construction

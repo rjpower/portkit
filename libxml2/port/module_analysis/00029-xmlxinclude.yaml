@@ -1,0 +1,22 @@
+module:
+  name: xmlxinclude
+  description: XInclude processing.
+  estimated_loc: 2190
+  c_files:
+  - xinclude.c
+  header_files:
+  - include/libxml/xinclude.h
+  key_functions:
+  - xmlXIncludeProcess
+  - xmlXIncludeNewContext
+  dependencies:
+  - xmltree
+  - xmlerror
+  - xmlio
+  api_overview: The xinclude module implements the W3C XML Inclusions (XInclude) 1.0
+    specification. Its primary responsibility is to process 'xi:include' elements
+    within an XML document. It resolves these elements by fetching content from specified
+    URIs (either XML or plain text), applying XPointer expressions if present, and
+    then replacing the 'xi:include' element with the included content. It handles
+    recursion, loop detection, and fallback mechanisms, effectively merging external
+    content into a single XML infoset.

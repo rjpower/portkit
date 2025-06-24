@@ -1,0 +1,31 @@
+module:
+  name: xmlschemas
+  description: XML Schema validation engine and type system.
+  estimated_loc: 34586
+  c_files:
+  - xmlschemas.c
+  - xmlschemastypes.c
+  header_files:
+  - include/libxml/schemasInternals.h
+  - include/libxml/xmlschemas.h
+  key_functions:
+  - xmlSchemaParse
+  - xmlSchemaNewValidCtxt
+  - xmlSchemaValidateDoc
+  dependencies:
+  - xmlstring
+  - xmldict
+  - xmltree
+  - xmlparser
+  - xmlsax
+  - xmlerror
+  - xmlregexp
+  - xmlpattern
+  - xmlio
+  - xmlvalid
+  api_overview: The xmlschemas module in libxml2 is responsible for parsing XML Schema
+    Definition (XSD) documents and validating XML instance documents against these
+    schemas. It implements the W3C XML Schema specification, handling complex type
+    definitions, simple type definitions, element and attribute declarations, model
+    groups, attribute groups, wildcards, and identity constraints (keys, unique, keyrefs).
+    It provides APIs for both schema compilation (parsing) and document validation.

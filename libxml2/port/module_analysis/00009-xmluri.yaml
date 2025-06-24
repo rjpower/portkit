@@ -1,0 +1,21 @@
+module:
+  name: xmluri
+  description: URI parsing and manipulation.
+  estimated_loc: 2777
+  c_files:
+  - uri.c
+  header_files:
+  - include/libxml/uri.h
+  key_functions:
+  - xmlParseURISafe
+  - xmlBuildURISafe
+  - xmlFreeURI
+  dependencies:
+  - xmlstring
+  api_overview: The 'uri' module provides a comprehensive set of routines for parsing,
+    manipulating, and normalizing Uniform Resource Identifiers (URIs) in accordance
+    with RFC 3986 (and older RFCs like 2396). Its primary responsibility is to represent
+    URIs in a structured format (xmlURI), parse URI strings into this structure, serialize
+    the structure back into a string, and handle URI resolution, normalization, escaping,
+    and unescaping. It serves as a core component for correctly interpreting and manipulating
+    URIs within the libxml2 library.

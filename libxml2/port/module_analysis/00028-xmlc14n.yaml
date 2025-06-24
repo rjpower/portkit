@@ -1,0 +1,26 @@
+module:
+  name: xmlc14n
+  description: XML Canonicalization (C14N) implementation.
+  estimated_loc: 2171
+  c_files:
+  - c14n.c
+  header_files:
+  - include/libxml/c14n.h
+  key_functions:
+  - xmlC14NExecute
+  - xmlC14NDocSaveTo
+  dependencies:
+  - xmltree
+  - xmlio
+  - xmlbuf
+  - xmlstring
+  - xmlxpath
+  api_overview: The c14n module provides implementations for "Canonical XML" (http://www.w3.org/TR/xml-c14n),
+    "Exclusive XML Canonicalization" (http://www.w3.org/TR/xml-exc-c14n), and Canonical
+    XML 1.1. Its primary responsibility is to transform an XML document or a subset
+    of it into a canonical form, which is a standardized physical representation.
+    This process resolves ambiguities in XML serialization (e.g., whitespace, attribute
+    order, namespace declarations) to ensure a consistent output, which is critical
+    for applications like digital signatures where byte-for-byte identity is required.
+    The module handles default attributes and resolves entity references, requiring
+    documents to be loaded with XML_PARSE_DTDATTR | XML_PARSE_NOENT for full canonicalization.

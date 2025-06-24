@@ -1,0 +1,81 @@
+module:
+  name: xpointer
+  description: "XML Pointer Language (XPointer) implementation for addressing XML document fragments"
+  estimated_loc: 2423
+  c_files:
+    - xpointer.c
+  header_files:
+    - include/libxml/xpointer.h
+  key_functions:
+    - xmlXPtrNewContext
+    - xmlXPtrEval
+    - xmlXPtrNewLocationSet
+    - xmlXPtrFreeLocationSet
+    - xmlXPtrLocationSetAdd
+    - xmlXPtrLocationSetMerge
+    - xmlXPtrLocationSetDel
+    - xmlXPtrLocationSetRemove
+    - xmlXPtrLocationSetCreate
+    - xmlXPtrNewRange
+    - xmlXPtrNewRangePoints
+    - xmlXPtrNewRangeNodePoint
+    - xmlXPtrNewRangePointNode
+    - xmlXPtrNewRangeNodes
+    - xmlXPtrFreeRange
+    - xmlXPtrNewCollapsedRange
+    - xmlXPtrRangeToFunction
+    - xmlXPtrBuildNodeList
+    - xmlXPtrEvalXPtrPart
+    - xmlXPtrStringRangeFunction
+    - xmlXPtrStartPointFunction
+    - xmlXPtrEndPointFunction
+    - xmlXPtrHereFunction
+    - xmlXPtrOriginFunction
+    - xmlXPtrRangeFunction
+    - xmlXPtrRangeInsideFunction
+    - xmlXPtrRangeToFunction
+  dependencies:
+    - xpath
+    - tree
+    - uri
+    - parser-internals
+    - xmlmemory
+    - error
+  api_overview: |
+    Implements the W3C XML Pointer Language (XPointer) specification for
+    addressing and identifying specific parts within XML documents. Extends
+    XPath functionality with additional addressing schemes and range support.
+    
+    Key structures:
+    - xmlXPathContext: Extended for XPointer evaluation environment
+    - xmlXPathObject: Result objects including location sets and ranges
+    - xmlLocationSet: Collection of locations (nodes, points, ranges)
+    - xmlXPathRange: Range between two points in document
+    - xmlXPathPoint: Position within text or between nodes
+    
+    XPointer schemes supported:
+    - xpointer(): Full XPointer expressions using XPath syntax
+    - element(): Child sequence addressing (e.g., element(1/3/2))
+    - xmlns(): Namespace prefix registration
+    - Bare names: ID-based element selection
+    
+    Features:
+    - Cascaded part evaluation (first successful wins)
+    - Range-based selections
+    - Point-based addressing
+    - Location sets for multiple results
+    - Standard XPointer functions (here(), origin(), start-point(), etc.)
+    - String range functions
+    - ID-based shortcuts
+    - Namespace handling
+    - Integration with XPath evaluation
+    - Error recovery for malformed parts
+    
+    Implementation notes:
+    - Built on top of XPath engine
+    - Range operations for text selections
+    - Location set management and merging
+    - Scheme-specific parsers and evaluators
+    - In Rust: enum-based scheme dispatching
+    - Range types with proper lifetime management
+    - Iterator patterns for location set traversal

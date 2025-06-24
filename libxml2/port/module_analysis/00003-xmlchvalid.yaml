@@ -1,0 +1,20 @@
+module:
+  name: xmlchvalid
+  description: Character validation functions for XML names and tokens.
+  estimated_loc: 174
+  c_files:
+  - chvalid.c
+  header_files:
+  - include/libxml/chvalid.h
+  key_functions:
+  - xmlIsBaseChar
+  - xmlIsChar
+  - xmlCharInRange
+  dependencies:
+  - xmlstring
+  api_overview: The chvalid module implements character range validation APIs, primarily
+    for Unicode characters, to ensure compliance with XML specifications. It provides
+    functions and macros to check if a given character belongs to specific XML character
+    categories such as base characters, digits, combining characters, and more. It
+    efficiently handles both single-byte and multi-byte character ranges using pre-generated
+    lookup tables and binary search algorithms.

@@ -1,0 +1,24 @@
+module:
+  name: xmlerror
+  description: Global error handling and reporting for libxml2.
+  estimated_loc: 1409
+  c_files:
+  - error.c
+  header_files:
+  - include/libxml/xmlerror.h
+  key_functions:
+  - xmlSetGenericErrorFunc
+  - xmlRaiseError
+  - xmlResetLastError
+  dependencies:
+  - xmlstring
+  - xmltree
+  - xmlparser
+  - xmlio
+  api_overview: The 'error' module in libxml2 is responsible for centralizing and
+    standardizing error reporting and handling within the library. It defines data
+    structures to capture detailed error information, provides enumerations for error
+    levels and domains, and offers a public API for applications to set custom error
+    handlers, raise errors, retrieve the last error, and format error messages. Its
+    primary goal is to provide comprehensive and structured error feedback to users
+    and other libxml2 modules.

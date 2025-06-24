@@ -1,0 +1,31 @@
+module:
+  name: xmlstring
+  description: "String manipulation utilities for xmlChar* and UTF-8 handling"
+  estimated_loc: 1137
+  c_files:
+    - xmlstring.c
+  header_files:
+    - include/libxml/xmlstring.h
+  key_functions:
+    - xmlStrndup
+    - xmlStrdup  
+    - xmlStrcmp
+    - xmlStrEqual
+    - xmlStrlen
+    - xmlStrcat
+    - xmlUTF8Strlen
+    - xmlCheckUTF8
+    - xmlGetUTF8Char
+    - xmlStrASPrintf
+  dependencies: []
+  api_overview: |
+    Provides fundamental string manipulation utilities specifically designed for libxml2's 
+    xmlChar* type and UTF-8 encoding. This is a foundational module with no dependencies 
+    on other libxml2 modules. Functions handle string duplication, comparison, concatenation,
+    UTF-8 validation and character extraction, and formatted string creation.
+    
+    Implementation notes:
+    - Uses libxml2 memory management (xmlMalloc/xmlFree)
+    - All functions operate on xmlChar* (unsigned char*)
+    - Includes comprehensive UTF-8 support
+    - Can be implemented as pure Rust with UTF-8 string handling

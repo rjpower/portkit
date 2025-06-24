@@ -1,0 +1,35 @@
+module:
+  name: chvalid
+  description: "Character validation for Unicode code points using range tables"
+  estimated_loc: 174
+  c_files:
+    - chvalid.c
+  header_files:
+    - include/libxml/chvalid.h
+  key_functions:
+    - xmlCharInRange
+    - xmlIsBaseChar
+    - xmlIsBlank
+    - xmlIsChar
+    - xmlIsCombining
+    - xmlIsDigit
+    - xmlIsExtender
+    - xmlIsIdeographic
+    - xmlIsPubidChar
+  dependencies: []
+  api_overview: |
+    Provides character validation services for Unicode code points using binary search
+    over predefined character range tables. The module validates whether characters
+    belong to specific Unicode categories needed for XML processing.
+    
+    Key structures:
+    - xmlChRangeGroup: Container for character ranges
+    - xmlChSRange: Short ranges (up to 0xFFFF)
+    - xmlChLRange: Long ranges (0x10000+)
+    
+    Implementation notes:
+    - Uses binary search for efficient range lookup
+    - Supports both short and long Unicode ranges
+    - Most functions are deprecated wrappers for *Q variants
+    - Range data likely comes from Unicode tables
+    - Can be implemented in Rust using Unicode range tables

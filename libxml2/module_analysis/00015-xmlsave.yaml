@@ -1,0 +1,75 @@
+module:
+  name: xmlsave
+  description: "XML/HTML tree serialization with formatting and encoding support"
+  estimated_loc: 2681
+  c_files:
+    - xmlsave.c
+  header_files:
+    - include/libxml/xmlsave.h
+    - include/private/save.h
+  key_functions:
+    - xmlSaveToBuffer
+    - xmlSaveToFd
+    - xmlSaveToFilename
+    - xmlSaveToIO
+    - xmlSaveDoc
+    - xmlSaveTree
+    - xmlSaveFlush
+    - xmlSaveClose
+    - xmlSaveFinish
+    - xmlSaveSetEscape
+    - xmlSaveSetAttrEscape
+    - xmlSaveSetIndentString
+    - xmlDocDump
+    - xmlDocDumpFormatMemory
+    - xmlDocDumpMemory
+    - xmlDocFormatDump
+    - xmlElemDump
+    - xmlNodeDump
+    - xmlBufNodeDump
+    - xmlSaveFile
+    - xmlSaveFormatFile
+    - xmlSaveFileEnc
+    - xmlSaveFormatFileEnc
+    - xmlAttrSerializeTxtContent
+    - xmlNsListDumpOutput
+    - xmlSaveNotationDecl
+    - xmlSaveNotationTable
+  dependencies:
+    - tree
+    - buf
+    - xmlio
+    - encoding
+    - xmlstring
+    - xmlmemory
+    - error
+  api_overview: |
+    Provides comprehensive XML and HTML document serialization capabilities.
+    Converts in-memory document trees to various output formats with encoding,
+    formatting, and escaping support.
+    
+    Key structures:
+    - _xmlSaveCtxt: Serialization context with encoding, formatting options, and output buffer
+    
+    Key enums:
+    - XML_SAVE_OPTIONS: Serialization behavior flags (formatting, empty tags, DOCTYPE)
+    
+    Features:
+    - Multiple output targets (file, buffer, FD, custom I/O)
+    - Character encoding conversion
+    - Pretty-printing with configurable indentation
+    - XML, XHTML, and HTML serialization modes
+    - Custom character escaping functions
+    - Namespace handling and normalization
+    - DTD and notation serialization
+    - Streaming output support
+    - Format preservation options
+    
+    Implementation notes:
+    - Tree traversal for serialization
+    - Configurable output formatting
+    - Character escaping based on context
+    - Namespace reconciliation during output
+    - Support for both XML and HTML rules
+    - In Rust: use serde or custom serialization traits
+    - Consider quick-xml for streaming output
