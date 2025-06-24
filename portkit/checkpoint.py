@@ -30,7 +30,7 @@ class SourceCheckpoint(BaseModel):
     def save(self) -> None:
         """Save current state of source directory."""
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
-        
+
         def walk_unignored(path: Path):
             if self._is_ignored(path):
                 return
@@ -42,7 +42,7 @@ class SourceCheckpoint(BaseModel):
             elif path.is_dir():
                 for child in path.iterdir():
                     walk_unignored(child)
-        
+
         walk_unignored(self.source_dir)
         self.saved = True
 
@@ -64,13 +64,12 @@ class SourceCheckpoint(BaseModel):
                 target_path.parent.mkdir(parents=True, exist_ok=True)
 
                 # Replace if different or missing
-                if not target_path.exists() or not self._files_equal(
-                    backup_path, target_path
-                ):
+                if not target_path.exists() or not self._files_equal(backup_path, target_path):
                     shutil.copy2(backup_path, target_path)
 
         # Second pass: remove files that don't exist in backup
         if self.source_dir.exists():
+
             def remove_extra_files(path: Path):
                 if self._is_ignored(path):
                     return
@@ -82,7 +81,7 @@ class SourceCheckpoint(BaseModel):
                 elif path.is_dir():
                     for child in path.iterdir():
                         remove_extra_files(child)
-            
+
             remove_extra_files(self.source_dir)
 
     def _files_equal(self, path1: Path, path2: Path) -> bool:
@@ -99,8 +98,6 @@ class SourceCheckpoint(BaseModel):
 
     def __exit__(self, exc_type, _exc_val, _exc_tb):
         if exc_type is not None:
-            print(
-                f"Restoring source directory to checkpointed state: {self.checkpoint_dir}"
-            )
+            print(f"Restoring source directory to checkpointed state: {self.checkpoint_dir}")
             self.restore()
         self.cleanup()

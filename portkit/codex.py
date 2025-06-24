@@ -10,8 +10,8 @@ from rich.console import Console
 class ToolContext(Protocol):
     console: Console
     project_root: Path
-    
-    @property  
+
+    @property
     def config(self) -> Any:
         """Project configuration."""
         ...
@@ -46,9 +46,7 @@ async def call_with_codex_retry(
         return messages
 
     ctx.console.print(f"[yellow]Initial status: {status}[/yellow]")
-    messages.append(
-        {"role": "user", "content": f"Initial status: {status.get_feedback()}"}
-    )
+    messages.append({"role": "user", "content": f"Initial status: {status.get_feedback()}"})
 
     for attempt in range(max_attempts):
         ctx.console.print(f"[bold cyan]Codex attempt {attempt + 1} of {max_attempts}[/bold cyan]")
@@ -118,13 +116,14 @@ async def call_with_codex(
         # Run Codex CLI
         ctx.console.print("[yellow]Running Codex CLI with prompt...[/yellow]")
         import subprocess
+
         result = subprocess.run(
             ["codex", "--approval-mode", "auto-edit", f"@{prompt_file}"],
             cwd=project_root,
             capture_output=True,
-            text=True
+            text=True,
         )
-        
+
         # Since we're not using interrupts for codex, just use the result directly
 
         if result.returncode != 0:
@@ -138,8 +137,8 @@ async def call_with_codex(
         # Add assistant message to conversation
         messages.append({"role": "assistant", "content": assistant_response})
 
-        return messages
-
     finally:
         # Clean up temp file
         Path(prompt_file).unlink(missing_ok=True)
+
+    return messages

@@ -1,4 +1,5 @@
 import signal
+from typing import Any
 
 
 class InterruptSignal(Exception):
@@ -11,6 +12,10 @@ class InterruptSignal(Exception):
 
 class InterruptHandler:
     """Signal-based interrupt handling."""
+
+    _original_handler: Any | None = None
+    _user_message: str = ""
+    _interrupt_requested: bool = False
 
     def __init__(self):
         self._interrupt_requested = False

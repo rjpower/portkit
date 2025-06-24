@@ -1,6 +1,7 @@
 import asyncio
 import json
 import traceback
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -9,22 +10,74 @@ import click
 from pydantic import BaseModel, Field
 from rich.console import Console
 
+from portkit import rustc
 from portkit.checkpoint import SourceCheckpoint
 from portkit.claude import port_symbol_claude
 from portkit.codex import call_with_codex_retry
 from portkit.config import ProjectConfig
 from portkit.interrupt import InterruptHandler
+from portkit.rustc import RustTranscribeError
 from portkit.sourcemap import (
     SourceMap,
     Symbol,
 )
 from portkit.tinyagent.agent import (
-    RunFuzzTestRequest,
     TaskStatus,
     call_with_retry,
-    compile_rust_project,
-    run_fuzz_test,
 )
+from portkit.tools.shell import shell, ShellRequest
+
+
+# Helper functions to replace removed tools
+def compile_rust_project(project_dir: Path, *, ctx):
+    """Compile Rust project using cargo fuzz build."""
+    ctx.console.print(f"[yellow]Compiling rust project {project_dir}...[/yellow]", end="")
+    
+    result = shell(
+        ShellRequest(
+            command=["cargo", "fuzz", "build"],
+            cwd=str(project_dir.relative_to(ctx.config.project_root))
+        ),
+        ctx=ctx
+    )
+    
+    ctx.console.print("[green]done[/green]")
+    
+    if result.returncode != 0:
+        raise Exception(f"Compilation failed: {result.stderr}")
+
+
+class RunFuzzTestRequest(BaseModel):
+    target: str
+    timeout: int = 10
+    runs: int = -1
+
+
+class FuzzTestError(Exception):
+    def __init__(self, path: Path, stderr: str):
+        self.path = path
+        self.stderr = stderr
+        super().__init__(f"Fuzz test failed: {stderr}")
+
+
+def run_fuzz_test(request: RunFuzzTestRequest, *, ctx) -> dict:
+    """Run fuzz test using cargo fuzz run."""
+    cmd = ["cargo", "fuzz", "run", request.target, "--", f"-max_total_time={request.timeout}"]
+    if request.runs > 0:
+        cmd.extend([f"-runs={request.runs}"])
+    
+    result = shell(
+        ShellRequest(
+            command=cmd,
+            cwd=str(ctx.config.rust_fuzz_root_path().relative_to(ctx.config.project_root))
+        ),
+        ctx=ctx
+    )
+    
+    if result.returncode != 0:
+        raise FuzzTestError(ctx.config.rust_fuzz_root_path(), result.stderr)
+    
+    return {"success": True}
 
 
 class EditorType(str, Enum):
@@ -66,18 +119,19 @@ class BuilderContext(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
 
     @classmethod
-    def from_project_root(cls, project_root: Path, editor_type: EditorType = EditorType.LITELLM) -> "BuilderContext":
+    def from_project_root(
+        cls, project_root: Path, editor_type: EditorType = EditorType.LITELLM
+    ) -> "BuilderContext":
         """Create BuilderContext from a project root directory."""
         config = ProjectConfig.find_project_config(project_root)
         if not config:
-            raise ValueError(f"No portkit_config.json found in {project_root} or its parent directories")
+            raise ValueError(
+                f"No portkit_config.json found in {project_root} or its parent directories"
+            )
 
         source_map = SourceMap(project_root, config)
         return cls(
-            project_root=project_root,
-            config=config,
-            source_map=source_map,
-            editor_type=editor_type
+            project_root=project_root, config=config, source_map=source_map, editor_type=editor_type
         )
 
     @property
@@ -123,13 +177,9 @@ def is_symbol_ported(symbol: Symbol, ctx: BuilderContext, initial: bool = True) 
             ctx.project_root / locations.ffi_path, symbol.name
         )
         if not ffi_content:
-            result.error(
-                f"FFI binding for '{symbol.name}' not found in {locations.ffi_path}"
-            )
+            result.error(f"FFI binding for '{symbol.name}' not found in {locations.ffi_path}")
         else:
-            result.diagnostic(
-                f"FFI binding for '{symbol.name}' found in {locations.ffi_path}"
-            )
+            result.diagnostic(f"FFI binding for '{symbol.name}' found in {locations.ffi_path}")
 
     if has_implementation(symbol.kind):
         # Check Rust implementation
@@ -159,10 +209,7 @@ def is_symbol_ported(symbol: Symbol, ctx: BuilderContext, initial: bool = True) 
                 )
             else:
                 fuzz_content = fuzz_path.read_text()
-                if (
-                    symbol.name not in fuzz_content
-                    or "fuzz_target!" not in fuzz_content
-                ):
+                if symbol.name not in fuzz_content or "fuzz_target!" not in fuzz_content:
                     result.error(
                         f"Fuzz test for '{symbol.name}' not properly defined in {locations.rust_fuzz_path}"
                     )
@@ -179,9 +226,7 @@ def is_symbol_ported(symbol: Symbol, ctx: BuilderContext, initial: bool = True) 
             fuzz_target = f"fuzz_{symbol.name}"
             runs = 100 if initial else -1
             try:
-                run_fuzz_test(
-                    RunFuzzTestRequest(target=fuzz_target, runs=runs), ctx=ctx
-                )
+                run_fuzz_test(RunFuzzTestRequest(target=fuzz_target, runs=runs), ctx=ctx)
             except Exception as e:
                 result.error(f"Fuzz test failed: {str(e)}")
 
@@ -245,7 +290,7 @@ def generate_unified_prompt(
     processed_symbols_text = f"""
 <processed_symbols>
 The following symbols have already been successfully ported:
-{', '.join(sorted_symbols)}
+{", ".join(sorted_symbols)}
 </processed_symbols>
 """
 
@@ -282,9 +327,7 @@ The following symbols have already been successfully ported:
         c_symbol = ctx.source_map.get_symbol(symbol.name)
         if c_symbol.declaration_file:
             header_path = ctx.project_root / c_symbol.declaration_file
-            c_declaration = ctx.source_map.find_c_symbol_definition(
-                header_path, symbol.name
-            )
+            c_declaration = ctx.source_map.find_c_symbol_definition(header_path, symbol.name)
 
     return f"""
 <port>
@@ -350,9 +393,7 @@ Repository structure and key symbols:
     completion_fn = lambda initial: is_symbol_ported(symbol, ctx, initial)
 
     if ctx.editor_type == EditorType.CODEX:
-        return await call_with_codex_retry(
-            messages, completion_fn, ctx.project_root, ctx=ctx
-        )
+        return await call_with_codex_retry(messages, completion_fn, ctx.project_root, ctx=ctx)
     elif ctx.editor_type == EditorType.CLAUDE:
         await port_symbol_claude(symbol, source_map=ctx.source_map, config=ctx.config)
         return completion_fn(False)
@@ -383,6 +424,32 @@ async def port_symbol(symbol: Symbol, *, ctx: BuilderContext) -> None:
         return
 
     ctx.console.print(f"[bold blue]Processing {symbol}[/bold blue]")
+
+    # Try direct transpilation first for simple symbols
+    if rustc.can_transpile_directly(symbol):
+        ctx.console.print(f"[cyan]Attempting direct transpilation for {symbol.name}[/cyan]")
+        try:
+            rust_code = rustc.transpile(symbol, ctx.project_root)
+            # Write to appropriate file
+            target_file = ctx.rust_src_for_symbol(symbol)
+            rustc.write_transpiled_symbol(symbol, rust_code, target_file)
+
+            # Also add to FFI if needed
+            if symbol.kind in ("const", "define"):
+                ffi_path = ctx.rust_ffi_path
+                rustc.write_transpiled_symbol(symbol, rust_code, ffi_path)
+
+            ctx.console.print(f"[green]Successfully transpiled {symbol.name}[/green]")
+            return
+        except RustTranscribeError as e:
+            ctx.console.print(
+                f"[yellow]Direct transpilation not possible for {symbol.name}: {e}[/yellow]"
+            )
+            # Fall through to LLM approach
+        except Exception as e:
+            ctx.console.print(f"[red]Direct transpilation failed for {symbol.name}: {e}[/red]")
+            # Fall through to LLM approach
+
     # save a checkpoint and restore if compilation fails after the LLM is done.
     checkpoint = SourceCheckpoint(source_dir=ctx.config.rust_root_path())
     checkpoint.save()
@@ -400,12 +467,19 @@ async def port_symbol(symbol: Symbol, *, ctx: BuilderContext) -> None:
             raise
         checkpoint.cleanup()
 
-async def run_traversal_pipeline(*, ctx: BuilderContext) -> dict[str, Any]:
+
+@dataclass
+class PipelineResults:
+    total: int
+    successful: int
+    failed: int
+    failed_symbols: list[str]
+
+
+async def run_traversal_pipeline(*, ctx: BuilderContext) -> PipelineResults:
     """Run the complete traversal pipeline on the configured C source directory."""
     source_dir = str(ctx.c_source_path)
-    ctx.console.print(
-        f"[bold green]Starting traversal pipeline on {source_dir}[/bold green]"
-    )
+    ctx.console.print(f"[bold green]Starting traversal pipeline on {source_dir}[/bold green]")
 
     symbols = ctx.source_map.get_topological_order()
 
@@ -414,17 +488,17 @@ async def run_traversal_pipeline(*, ctx: BuilderContext) -> dict[str, Any]:
         cycle_marker = "*" if symbol.is_cycle else " "
         ctx.console.print(f"{cycle_marker} {i:3d}. {symbol.kind:<8} {symbol.name:<25}")
 
-    results = {
-        "total": len(symbols),
-        "successful": 0,
-        "failed": 0,
-        "failed_symbols": [],
-    }
+    results = PipelineResults(
+        total=len(symbols),
+        successful=0,
+        failed=0,
+        failed_symbols=[],
+    )
 
     for i, symbol in enumerate(symbols, 1):
-        ctx.console.print(f"\n{'─'*80}")
+        ctx.console.print(f"\n{'─' * 80}")
         ctx.console.print(
-            f"[bold cyan]Progress: {i}/{len(symbols)} ({i/len(symbols)*100:.1f}%)[/bold cyan]"
+            f"[bold cyan]Progress: {i}/{len(symbols)} ({i / len(symbols) * 100:.1f}%)[/bold cyan]"
         )
 
         if should_skip_symbol(symbol, ctx.failed_symbols):
@@ -433,31 +507,31 @@ async def run_traversal_pipeline(*, ctx: BuilderContext) -> dict[str, Any]:
                 f"[yellow]Skipping {symbol.name} due to failed dependencies: {', '.join(sorted(failed_deps))}[/yellow]"
             )
             ctx.failed_symbols.add(symbol.name)
-            results["failed"] += 1
-            results["failed_symbols"].append(symbol.name)
+            results.failed += 1
+            results.failed_symbols.append(symbol.name)
             continue
 
         try:
             await port_symbol(symbol, ctx=ctx)
             ctx.processed_symbols.add(symbol.name)
-            results["successful"] += 1
+            results.successful += 1
             ctx.console.print(f"[green]Successfully processed {symbol.name}[/green]")
         except Exception:
             ctx.console.print(f"[red]Failed to port symbol {symbol.name}[/red]")
             traceback.print_exc()
             ctx.failed_symbols.add(symbol.name)
-            results["failed"] += 1
-            results["failed_symbols"].append(symbol.name)
+            results.failed += 1
+            results.failed_symbols.append(symbol.name)
 
-    ctx.console.print(f"\n{'='*80}")
+    ctx.console.print(f"\n{'=' * 80}")
     ctx.console.print("[bold green]Pipeline completed![/bold green]")
-    ctx.console.print(f"[cyan]   Total symbols: {results['total']}[/cyan]")
-    ctx.console.print(f"[green]   Successful: {results['successful']}[/green]")
-    ctx.console.print(f"[red]   Failed: {results['failed']}[/red]")
+    ctx.console.print(f"[cyan]   Total symbols: {results.total}[/cyan]")
+    ctx.console.print(f"[green]   Successful: {results.successful}[/green]")
+    ctx.console.print(f"[red]   Failed: {results.failed}[/red]")
 
-    if results["failed_symbols"]:
+    if results.failed_symbols:
         ctx.console.print(
-            f"[red]   Failed symbols: {', '.join(results['failed_symbols'])}[/red]"
+            f"[red]   Failed symbols: {', '.join(results.failed_symbols)}[/red]"
         )
 
     return results
@@ -471,9 +545,9 @@ async def main_litellm():
     try:
         compile_rust_project(ctx.config.rust_root_path(), ctx=ctx)
         results = await run_traversal_pipeline(ctx=ctx)
-        if results["failed"] > 0:
+        if results.failed > 0:
             ctx.console.print(
-                f"[red]\nPipeline completed with {results['failed']} failures[/red]"
+                f"[red]\nPipeline completed with {results.failed} failures[/red]"
             )
             exit(1)
         else:
@@ -497,9 +571,9 @@ async def main_with_editor(editor_type: EditorType, project_root: Path):
         compile_rust_project(ctx.config.rust_root_path(), ctx=ctx)
         results = await run_traversal_pipeline(ctx=ctx)
 
-        if results["failed"] > 0:
+        if results.failed > 0:
             ctx.console.print(
-                f"[red]\nPipeline completed with {results['failed']} failures[/red]"
+                f"[red]\nPipeline completed with {results.failed} failures[/red]"
             )
             exit(1)
         else:
@@ -523,9 +597,7 @@ def cli():
     default=EditorType.LITELLM.value,
     help="Editor type to use for code generation",
 )
-@click.argument(
-    "project_root", type=click.Path(exists=True, file_okay=False, dir_okay=True)
-)
+@click.argument("project_root", type=click.Path(exists=True, file_okay=False, dir_okay=True))
 def main(editor: str, project_root: Path):
     """Port C code to Rust using AI-powered code generation."""
     project_root = Path(project_root).resolve()

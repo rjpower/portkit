@@ -13,23 +13,21 @@ class ProjectConfig(BaseModel):
     # Project identification
     project_name: str
     library_name: str  # for cargo package names
-    project_root: Path | None = None
+    project_root: Path
 
     # Directory structure
     c_source_dir: str = "src"  # relative to project root
     rust_dir: str = "rust"
-    rust_src_dir: str = "src" 
+    rust_src_dir: str = "src"
     fuzz_dir: str = "fuzz"
     fuzz_targets_dir: str = "fuzz_targets"
 
     # Build configuration
     build_dependencies: dict[str, str] = Field(default_factory=lambda: {"cc": "1.0", "glob": "0.3"})
     dependencies: dict[str, str] = Field(default_factory=lambda: {"libc": "0.2"})
-    dev_dependencies: dict[str, str] = Field(default_factory=lambda: {
-        "proptest": "1.0", 
-        "criterion": "0.5", 
-        "rand": "0.8"
-    })
+    dev_dependencies: dict[str, str] = Field(
+        default_factory=lambda: {"proptest": "1.0", "criterion": "0.5", "rand": "0.8"}
+    )
 
     # C compilation settings
     c_files: list[str] = Field(default_factory=list)  # List of C files to compile
@@ -80,9 +78,9 @@ class ProjectConfig(BaseModel):
     @classmethod
     def load_from_file(cls, config_path: Path) -> "ProjectConfig":
         """Load configuration from a JSON file."""
-        data = cls.model_validate_json(config_path.read_text())
-        # Set project_root to the directory containing the config file
-        data.project_root = config_path.parent
+        args = json.loads(config_path.read_text())
+        args["project_root"] = config_path.parent
+        data = cls.model_validate(args)
         return data
 
     def save_to_file(self, config_path: Path) -> None:

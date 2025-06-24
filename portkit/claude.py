@@ -124,9 +124,7 @@ async def port_symbol_claude(
     symbol: Symbol, *, source_map: SourceMap, config: "ProjectConfig"
 ) -> None:
     """Port a single symbol using Claude Code."""
-    print(
-        f"Processing {symbol.kind} {symbol.name} from {symbol.source_path or symbol.header_path}"
-    )
+    print(f"Processing {symbol.kind} {symbol.name} from {symbol.source_path or symbol.header_path}")
     print(f"Dependencies: {symbol.dependencies if symbol.dependencies else 'none'}")
 
     # Check if symbol is already fully ported
