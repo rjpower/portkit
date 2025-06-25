@@ -59,6 +59,8 @@ all-rust = [
 
 [dependencies]
 libc = "0.2"
+libloading = "0.8"  # For dynamic library loading in differential tests
+glob = "0.3"  # For finding dynamic libraries
 
 [build-dependencies]
 cc = "1.1"

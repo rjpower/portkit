@@ -12,13 +12,21 @@
 #![allow(unused_imports)]
 
 // Bindgen-generated FFI bindings
-pub mod bindings {
-    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+pub mod static_bindings {
+    include!(concat!(env!("OUT_DIR"), "/static_bindings.rs"));
 }
+
+// Dynamic bindings for baseline testing
+pub mod dynamic_bindings {
+    include!(concat!(env!("OUT_DIR"), "/dynamic_bindings.rs"));
+}
+
+// C baseline dynamic library loader for differential testing
+pub mod libxml2_dynload;
 
 // Re-export all bindings by default
 // Rust implementations will override these when their features are enabled
-pub use bindings::*;
+pub use static_bindings::*;
 
 // Conditionally include Rust implementations
 #[cfg(feature = "rust-xmlstring")]

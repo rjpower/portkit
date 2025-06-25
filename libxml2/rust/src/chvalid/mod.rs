@@ -2,4 +2,8 @@
 //!
 //! Character validation for Unicode code points using range tables
 
-// Stub implementation - will be filled in during actual porting
+pub mod core;
+pub mod ffi;
+mod ranges;
+
+pub use core::*;

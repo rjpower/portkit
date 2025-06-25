@@ -11,7 +11,6 @@
  * Author: Daniel Veillard
  */
 
-#define XML_DEPRECATED
 #define XML_DEPRECATED_MEMBER
 
 #include "libxml.h"

@@ -394,6 +394,7 @@ dependencies = [
  "criterion",
  "glob",
  "libc",
+ "libloading",
  "proptest",
  "rand 0.8.5",
 ]
